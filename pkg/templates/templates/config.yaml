@@ -1,4 +1,4 @@
 templates:
-  - src: "settings/serversettings.con.tpl"
+  "serversettings.con.tpl":
     dest: "mods/pr/settings/serversettings.con"
 
