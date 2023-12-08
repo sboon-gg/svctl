@@ -4,7 +4,6 @@ import (
 	"bufio"
 	_ "embed"
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -14,7 +13,7 @@ var defaultSource []byte
 type MapInfo struct {
 	Name  string `json:"name"`
 	Mode  string `json:"mode"`
-	Layer int    `json:"layer"`
+	Layer string `json:"layer"`
 }
 
 var DefaultMapList []MapInfo
@@ -38,12 +37,10 @@ func Parse(maplistContent string) []MapInfo {
 
 		parts := strings.Split(text, " ")
 
-		layer, _ := strconv.Atoi(parts[3])
-
 		maps = append(maps, MapInfo{
 			Name:  parts[1],
 			Mode:  parts[2],
-			Layer: layer,
+			Layer: parts[3],
 		})
 	}
 
@@ -54,8 +51,22 @@ func Compose(maps []MapInfo) string {
 	builder := strings.Builder{}
 
 	for _, m := range maps {
-		builder.WriteString(fmt.Sprintf("mapList.append %s %s %d", m.Name, m.Mode, m.Layer))
+		builder.WriteString(fmt.Sprintf("mapList.append %s %s %s", m.Name, m.Mode, m.Layer))
 	}
 
 	return builder.String()
+}
+
+func FilterMaplist(allMaps, filters []MapInfo) []MapInfo {
+	var maps []MapInfo
+
+	for _, filter := range filters {
+		for _, m := range allMaps {
+			if strings.Contains(m.Name, filter.Name) && strings.Contains(m.Mode, filter.Mode) && strings.Contains(m.Layer, filter.Layer) {
+				maps = append(maps, m)
+			}
+		}
+	}
+
+	return maps
 }
