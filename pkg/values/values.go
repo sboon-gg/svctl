@@ -7,12 +7,12 @@ import (
 )
 
 //go:embed defaults.yaml
-var defaultValues []byte
+var DefaultValuesFile []byte
 
 var DefaultValues map[string]any
 
 func init() {
-	err := yaml.Unmarshal(defaultValues, &DefaultValues)
+	err := yaml.Unmarshal(DefaultValuesFile, &DefaultValues)
 	if err != nil {
 		panic(err)
 	}

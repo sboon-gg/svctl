@@ -9,7 +9,7 @@ import (
 )
 
 //go:embed templates
-var templateFiles embed.FS
+var DefaultTemplateFiles embed.FS
 
 type Template struct {
 	Source      string `yaml:"src"`
@@ -40,8 +40,8 @@ var DefaultTemplates = []Template{
 }
 
 type Templates struct {
-	files  fs.FS
 	config []Template
+	files  fs.FS
 }
 
 func New(config []Template, files fs.FS) *Templates {
@@ -56,13 +56,13 @@ func (t *Templates) Render(values map[string]any) (map[string][]byte, error) {
 
 	tmpl := template.New("").Funcs(funcMap())
 
-	tmpl, err := tmpl.ParseFS(templateFiles, "templates/*.tpl")
+	tmpl, err := tmpl.ParseFS(DefaultTemplateFiles, "templates/*.tpl")
 	if err != nil {
 		return rendered, err
 	}
 
 	if t.files != nil {
-		tmpl, err = tmpl.ParseFS(t.files, "*.tpl")
+		tmpl, err = tmpl.ParseFS(t.files, "templates/*.tpl")
 		if err != nil {
 			return rendered, err
 		}

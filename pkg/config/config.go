@@ -6,6 +6,6 @@ type Config struct {
 	Templates []templates.Template `yaml:"templates"`
 }
 
-var defaultConfig = Config{
+var DefaultConfig = Config{
 	Templates: templates.DefaultTemplates,
 }
