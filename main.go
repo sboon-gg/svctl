@@ -40,6 +40,12 @@ func run() error {
 		return err
 	}
 
+	values := make(map[string]any)
+	err = yaml.Unmarshal(content, &values)
+	if err != nil {
+		return err
+	}
+
 	tmpl, err := template.New("").Funcs(
 		template.FuncMap{
 			"pyBool": pyBool,
@@ -51,8 +57,8 @@ func run() error {
 	}
 
 	data := struct {
-		Values config.Config
-	}{conf}
+		Values map[string]any
+	}{values}
 
 	s := ""
 	buf := bytes.NewBufferString(s)

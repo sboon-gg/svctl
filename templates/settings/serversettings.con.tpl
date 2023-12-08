@@ -1,31 +1,31 @@
 rem Name of the server for the server list
-sv.serverName {{ .Values.config.name | quote }}
+sv.serverName {{ .Values.prbf2.name | quote }}
 rem Password for joining the server
-sv.password {{ .Values.config.password | quote }}
+sv.password {{ .Values.prbf2.password | quote }}
 rem 1 for internet servers, 0 for everything else
-sv.internet {{ .Values.internet }}
+sv.internet {{ .Values.prbf2.internet }}
 rem IPv4 of the server
-sv.serverIP {{ .Values.config.ip | quote }}
+sv.serverIP {{ .Values.prbf2.ip | quote }}
 rem Port of the server
 sv.serverPort {{ .Values.prbf2.ports.game }}
 rem Port to query server information
 sv.gameSpyPort {{ .Values.prbf2.ports.gamespy }}
 rem IPv4:Port of the mumble server to use. Leave empty to disable mumble
-sv.voipServerRemoteIP {{ if .Values.config.externalIP }}{{ printf "%s:%d" .Values.config.externalIP .Values.murmur.port | quote }}{{ else }}""{{ end }}
+sv.voipServerRemoteIP {{ if .Values.prbf2.externalIP }}{{ printf "%s:%d" .Values.prbf2.externalIP .Values.murmur.port | quote }}{{ else }}""{{ end }}
 rem Message displayed in loading screen
 sv.welcomeMessage "Welcome to a Project Reality server!"
 rem Message displayed in server browser. User '|' for line breaks and add 'pr_maplist' to add next maps in rotation
 sv.sponsorText "Welcome to a Project Reality server!|pr_maplist"
 rem Logo displayed in server browser
-sv.sponsorLogoURL {{ .Values.config.sponsorLogoURL | quote }}
+sv.sponsorLogoURL {{ .Values.prbf2.sponsorLogoURL | quote }}
 rem Logo displayed in server browser
-sv.communityLogoURL {{ .Values.config.communityLogoURL | quote }}
+sv.communityLogoURL {{ .Values.prbf2.communityLogoURL | quote }}
 
 sv.allowFreeCam 0
 sv.allowExternalViews 0
 sv.allowNoseCam 0
 sv.hitIndicator 0
-sv.maxPlayers {{ .maxPlayers }}
+sv.maxPlayers {{ .Values.prbf2.maxPlayers }}
 sv.numPlayersNeededToStart 1
 sv.notEnoughPlayersRestartDelay 15
 sv.ticketRatio 100
@@ -39,7 +39,7 @@ sv.vehicleSplashFriendlyFire 100
 sv.tkPunishEnabled 1
 sv.tkNumPunishToKick 3
 sv.tkPunishByDefault 0
-sv.votingEnabled {{ .votingEnabled }}
+sv.votingEnabled {{ .Values.prbf2.votingEnabled }}
 sv.voteTime 90
 sv.minPlayersForVoting 1
 sv.allowNATNegotiation 0
@@ -47,7 +47,7 @@ sv.autoRecord 0
 sv.demoIndexURL http://
 sv.demoDownloadURL http://
 sv.autoDemoHook "adminutils/demo/rotate_demo.exe"
-sv.demoQuality {{ .demoQuality }}
+sv.demoQuality {{ .Values.prbf2.demoQuality }}
 sv.timeBeforeRestartMap 30
 sv.autoBalanceTeam 0
 sv.teamRatioPercent 100
@@ -60,7 +60,7 @@ sv.radioSpamInterval 6
 sv.radioMaxSpamFlagCount 6
 sv.radioBlockedDurationTime 30
 
-{{- with .Values.config.reservedSlotsNum }}
+{{- with .Values.prbf2.reservedSlotsNum }}
 sv.NumReservedSlots {{ . }}
 {{- end }}
 
