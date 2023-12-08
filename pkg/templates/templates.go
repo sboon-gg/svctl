@@ -6,45 +6,48 @@ import (
 	"io/fs"
 	"path/filepath"
 	"text/template"
-
-	"dario.cat/mergo"
-	"gopkg.in/yaml.v3"
 )
 
-//go:embed templates/config.yaml
-var defaultConfig []byte
-
 //go:embed templates
-var DefaultTemplates embed.FS
-
-type Config struct {
-	Templates map[string]Template `yaml:"templates"`
-}
+var templateFiles embed.FS
 
 type Template struct {
+	Source      string `yaml:"src"`
 	Destination string `yaml:"dest"`
 }
 
-var DefaultConfig Config
-
-func init() {
-	err := yaml.Unmarshal(defaultConfig, &DefaultConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	// TODO: validate defaults with schema
+var DefaultTemplates = []Template{
+	{
+		Source:      "serversettings.con.tpl",
+		Destination: "mods/pr/settings/serversettings.con",
+	},
+	{
+		Source:      "realityconfig_admin.py.tpl",
+		Destination: "mods/pr/python/game/realityconfig_admin.py",
+	},
+	{
+		Source:      "realityconfig_common.py.tpl",
+		Destination: "mods/pr/python/game/realityconfig_common.py",
+	},
+	{
+		Source:      "realityconfig_private.py.tpl",
+		Destination: "mods/pr/python/game/realityconfig_private.py",
+	},
+	{
+		Source:      "realityconfig_tracker.py.tpl",
+		Destination: "mods/pr/python/game/realityconfig_tracker.py",
+	},
 }
 
 type Templates struct {
-	files       fs.FS
-	useDefaults bool
+	files  fs.FS
+	config []Template
 }
 
-func New(files fs.FS) *Templates {
+func New(config []Template, files fs.FS) *Templates {
 	return &Templates{
-		files:       files,
-		useDefaults: true,
+		config: config,
+		files:  files,
 	}
 }
 
@@ -53,49 +56,25 @@ func (t *Templates) Render(values map[string]any) (map[string][]byte, error) {
 
 	tmpl := template.New("").Funcs(funcMap())
 
-	var err error
-	if t.useDefaults {
-		tmpl, err = tmpl.ParseFS(DefaultTemplates, "templates/*.tpl")
-		if err != nil {
-			return rendered, err
-		}
+	tmpl, err := tmpl.ParseFS(templateFiles, "templates/*.tpl")
+	if err != nil {
+		return rendered, err
 	}
-
-	var config Config
 
 	if t.files != nil {
 		tmpl, err = tmpl.ParseFS(t.files, "*.tpl")
 		if err != nil {
 			return rendered, err
 		}
-
-		content, err := fs.ReadFile(t.files, "config.yaml")
-		if !t.useDefaults && err != nil {
-			return rendered, err
-		}
-
-		if err == nil {
-			err = yaml.Unmarshal(content, &config)
-			if err != nil {
-				return rendered, err
-			}
-		}
 	}
 
-	if t.useDefaults {
-		err = mergo.Merge(&config, DefaultConfig)
-		if err != nil {
-			return rendered, err
-		}
-	}
+	data := make(map[string]any)
 
-	data := struct {
-		Values map[string]any
-	}{values}
+	data["Values"] = values
 
-	for source, templateSpec := range config.Templates {
+	for _, templateSpec := range t.config {
 		var buf bytes.Buffer
-		err = tmpl.ExecuteTemplate(&buf, filepath.Base(source), data)
+		err = tmpl.ExecuteTemplate(&buf, filepath.Base(templateSpec.Source), data)
 		if err != nil {
 			return rendered, err
 		}
