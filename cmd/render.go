@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -38,6 +39,15 @@ func renderCmd() *cobra.Command {
 }
 
 func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
+	si, err := newServerInstance(opts.installationPath)
+	if err != nil {
+		return err
+	}
+
+	if !si.HasConfigCache() {
+		return errors.New("Script has not been initialized, run `init` first.")
+	}
+
 	t := templates.New(templates.DefaultTemplates, nil)
 
 	out, err := t.Render(values.DefaultValues)

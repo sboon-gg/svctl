@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"bufio"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/sboon-gg/prbf2-templates/pkg/config"
 	"github.com/sboon-gg/prbf2-templates/pkg/templates"
@@ -85,5 +88,32 @@ func (si *serverInstance) WriteDefaultValues() error {
 		}
 	}
 
-	return os.WriteFile(filepath.Join(si.dotDir(), "values.yaml"), values.DefaultValuesFile, 0755)
+	err := os.WriteFile(filepath.Join(si.dotDir(), "values.yaml"), []byte(commentOutWholeYamlFile(string(values.DefaultValuesFile))), 0755)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filepath.Join(si.dotDir(), "defaults.yaml"), values.DefaultValuesFile, 0755)
+}
+
+func commentOutWholeYamlFile(content string) string {
+	reader := strings.NewReader(content)
+	scanner := bufio.NewScanner(reader)
+
+	builder := strings.Builder{}
+
+	for scanner.Scan() {
+		text := scanner.Text()
+
+		if !strings.HasPrefix(strings.TrimSpace(text), "#") {
+			if len(strings.TrimSpace(text)) > 0 {
+				text = fmt.Sprintf("# %s", text)
+			}
+		}
+
+		builder.WriteString(text)
+		builder.WriteString("\n")
+	}
+
+	return builder.String()
 }
