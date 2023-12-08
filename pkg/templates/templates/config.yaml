@@ -1,4 +1,7 @@
 templates:
   "serversettings.con.tpl":
     dest: "mods/pr/settings/serversettings.con"
-
+  "realityconfig_admin.py.tpl":
+    dest: "mods/pr/python/game/realityconfig_admin.py"
+  "realityconfig_common.py.tpl":
+    dest: "mods/pr/python/game/realityconfig_common.py"

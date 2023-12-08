@@ -40,7 +40,7 @@ gameNotificationsEnabled = True
 # Default is 90
 
 {{- with .squads }}
-sqd_noSquadsBefore = {{ .Values.config.noSquadsBefore }}
+sqd_noSquadsBefore = {{ .noSquadsBefore }}
 #
 # Resign early
 # Default is False
@@ -56,7 +56,7 @@ sqd_kickSquadLess = {{ pyBool .kickSquadLess }}
 #
 # Time until squadless players are kicked
 # Default is 30 seconds
-sqd_kickSquadLessTime = {{ .Values.config.kickSquadLessTime }}
+sqd_kickSquadLessTime = {{ .kickSquadLessTime }}
 #
 #
 # Kick unassigned AFK players
@@ -66,11 +66,11 @@ sqd_kickSquadLessAFK = {{ pyBool .kickSquadLessAFK }}
 #
 # Kick unassigned afk players after the specified number of seconds.
 # 1200 seconds (20 mins) default
-sqd_kickSquadLessAFKTime = {{ .Values.config.kickSquadLessAFKTime }}
+sqd_kickSquadLessAFKTime = {{ .kickSquadLessAFKTime }}
 #
 #
 # Only kick players once the server reaches this full 0.9 (90%) default
-sqd_kickAFKPercent = {{ .Values.config.kickAFKPercent }}
+sqd_kickAFKPercent = {{ .kickAFKPercent }}
 #
 # Kick AFK players *in a squad*
 # Default is False (disabled)
@@ -78,7 +78,7 @@ sqd_kickSquadedAFK = {{ pyBool .kickSquadedAFK }}
 #
 # Kick AFK players that are in a squad after the specified number of seconds.
 # 1500 seconds (25 mins) default - give at least 15 mins (900 sec) for players in a squad to allow for timers
-sqd_kickSquadedAFKTime = {{ .Values.config.kickSquadedAFKTime }}
+sqd_kickSquadedAFKTime = {{ .kickSquadedAFKTime }}
 {{- end }}
 #
 #
@@ -379,205 +379,205 @@ adm_adminPowerLevels = {
     #
     # Reload the current map.
     # Default is 1
-    "reload":     {{ .Values.config.commandLevels.reload }},
+    "reload":     {{ .Values.commandLevels.reload }},
     #
     # Run the next map.
     # Default is 2
-    "runnext":    {{ .Values.config.commandLevels.runnext }},
+    "runnext":    {{ .Values.commandLevels.runnext }},
     #
     # Set a next map.
     # Default is 2
-    "setnext":    {{ .Values.config.commandLevels.setnext }},
+    "setnext":    {{ .Values.commandLevels.setnext }},
     #
     # Initializes a global server mapvote between 2-3 maps.
     # People can then vote with either writing 1,2 or 3 in chat.
     # All admins will receive a message which map won after a configured time.
     # Default is 2
-    "mapvote":    {{ .Values.config.commandLevels.mapvote }},
+    "mapvote":    {{ .Values.commandLevels.mapvote }},
     #
     # Sends a message to a specified player.
     # Similar to !warn but without the STOP DOING THAT and is private.
-    "message":    {{ .Values.config.commandLevels.message }},
+    "message":    {{ .Values.commandLevels.message }},
     #
     # Diplays the ticket count of both teams.
-    "tickets":    {{ .Values.config.commandLevels.tickets }},
+    "tickets":    {{ .Values.commandLevels.tickets }},
     #
     # Player control
     # Ban a player.
     # Default is 1
-    "ban":        {{ .Values.config.commandLevels.ban }},
+    "ban":        {{ .Values.commandLevels.ban }},
     #
     # Ban a player for a specified amount of time.
     # Default is 1
-    "timeban":    {{ .Values.config.commandLevels.timeban }},
+    "timeban":    {{ .Values.commandLevels.timeban }},
     #
     # Ban a player for a round
     # Default is 1
-    "roundban":    {{ .Values.config.commandLevels.roundban }},
+    "roundban":    {{ .Values.commandLevels.roundban }},
     #
     # Unbans the latest banned player.
     # Default is 1
-    "unban":      {{ .Values.config.commandLevels.unban }},
+    "unban":      {{ .Values.commandLevels.unban }},
     #
     # Send a player up in the air.
     # Default is 0
-    "fly":        {{ .Values.config.commandLevels.fly }},
+    "fly":        {{ .Values.commandLevels.fly }},
     #
     # Retrieves the hash of certain player.
     # Default is 2
-    "hash":       {{ .Values.config.commandLevels.hash }},
+    "hash":       {{ .Values.commandLevels.hash }},
     #
     # Kick a player.
     # Default is 2
-    "kick":       {{ .Values.config.commandLevels.kick }},
+    "kick":       {{ .Values.commandLevels.kick }},
     #
     # Kill a player.
     # Default is 1
-    "kill":       {{ .Values.config.commandLevels.kill }},
+    "kill":       {{ .Values.commandLevels.kill }},
     #
     # Resign a player from being squad leader or commander.
     # Default is 2
-    "resign":     {{ .Values.config.commandLevels.resign }},
+    "resign":     {{ .Values.commandLevels.resign }},
     #
     # Resign a player from being squad leader or commander.
     # Default is 2
-    "resignall":     {{ .Values.config.commandLevels.resignall }},
+    "resignall":     {{ .Values.commandLevels.resignall }},
     #
     # Teamswitch a player.
     # Default is 2
-    "switch":     {{ .Values.config.commandLevels.switch }},
+    "switch":     {{ .Values.commandLevels.switch }},
     #
     # Temporary ban a player (basically extended 'kick').
     # Default is 1
-    "tempban":    {{ .Values.config.commandLevels.tempban }},
+    "tempban":    {{ .Values.commandLevels.tempban }},
     #
     # Warn a player.
     # Default is 2
-    "warn":       {{ .Values.config.commandLevels.warn }},
+    "warn":       {{ .Values.commandLevels.warn }},
     #
     # Text messages
     # Show help about commands.
     # Default is 2
-    "help":       {{ .Values.config.commandLevels.help }},
+    "help":       {{ .Values.commandLevels.help }},
     #
     # Send a message to everybody.
     # Default is 2
-    "say":        {{ .Values.config.commandLevels.say }},
+    "say":        {{ .Values.commandLevels.say }},
     #
     # Same as !s, but for one team only.
     # Default is 2
-    "sayteam":    {{ .Values.config.commandLevels.sayteam }},
+    "sayteam":    {{ .Values.commandLevels.sayteam }},
     #
     # Server- and Pythoncommands
     # Enable/disable smart balancing (ab = autobalance, people call it that).
     # Default is 1
-    "ab":         {{ .Values.config.commandLevels.ab }},
+    "ab":         {{ .Values.commandLevels.ab }},
     # Reload some settings.
     # Default is 2
-    "init":       {{ .Values.config.commandLevels.init }},
+    "init":       {{ .Values.commandLevels.init }},
     #
     #
     # Swap the teams.
     # Default is 0
-    "swapteams":  {{ .Values.config.commandLevels.swapteams }},
+    "swapteams":  {{ .Values.commandLevels.swapteams }},
     #
     #
     # Scramble the teams.
     # Default is 0
-    "scramble":  {{ .Values.config.commandLevels.scramble }},
+    "scramble":  {{ .Values.commandLevels.scramble }},
     #
     #
     # Stops the server.
     # Default is 1
-    "stopserver": {{ .Values.config.commandLevels.stopserver }},
+    "stopserver": {{ .Values.commandLevels.stopserver }},
     #
     # Enable/disable autoadmin.
     # Default is 1
-    "aa":         {{ .Values.config.commandLevels.aa }},
+    "aa":         {{ .Values.commandLevels.aa }},
     #
     # Displays a list of the last n maps that were played on the server (Configurable count)
     # Default is 2
-    "history":    {{ .Values.config.commandLevels.history }},
+    "history":    {{ .Values.commandLevels.history }},
     #
     # Open commands
     # Please note that 777 is a fixed value for "open" commands!
     # This means everybody on the server can use them.
     # Returns a list of online admins.
     # Default is 777
-    "admins":     {{ .Values.config.commandLevels.admins }},
+    "admins":     {{ .Values.commandLevels.admins }},
     #
     # Report a player.
     # Default is 777
-    "reportplayer":    {{ .Values.config.commandLevels.reportplayer }},
+    "reportplayer":    {{ .Values.commandLevels.reportplayer }},
     #
     # Send a message to the admins.
     # Default is 777
-    "report":     {{ .Values.config.commandLevels.report }},
+    "report":     {{ .Values.commandLevels.report }},
     #
     # Shows the serverrules.
     # Default is 777
-    "rules":      {{ .Values.config.commandLevels.rules }},
+    "rules":      {{ .Values.commandLevels.rules }},
     #
     # Show the next map.
     # Default is 777
-    "shownext":   {{ .Values.config.commandLevels.shownext }},
+    "shownext":   {{ .Values.commandLevels.shownext }},
     #
     # Give squad lead to another player.
     # Default is 777
-    "givelead":   {{ .Values.config.commandLevels.givelead }},
+    "givelead":   {{ .Values.commandLevels.givelead }},
     #
     # shows if Battlerecorder is activated and which quality its running with.
     # Default is 777
-    "br":         {{ .Values.config.commandLevels.br }},
+    "br":         {{ .Values.commandLevels.br }},
     #
     # Displays a link to the server website.
     # Default is 777
-    "website":    {{ .Values.config.commandLevels.website }},
+    "website":    {{ .Values.commandLevels.website }},
     #
     # Random number utility, return a random int 0/1 by default
     # or in the range [0,m] if m is a supplied positive integer
     # Default is 777
-    "flip":       {{ .Values.config.commandLevels.flip }},
+    "flip":       {{ .Values.commandLevels.flip }},
     # Ungrief (TODO)
     #
     #
-    "ungrief":    {{ .Values.config.commandLevels.ungrief }},
+    "ungrief":    {{ .Values.commandLevels.ungrief }},
     #
     #
     # Reset squads - may fix squad bug
-    "resetsquads": {{ .Values.config.commandLevels.resetsquads }},
+    "resetsquads": {{ .Values.commandLevels.resetsquads }},
     #
     # Server Entrance control
     # handle whitelist and join permissions to the server
-    "ec": {{ .Values.config.commandLevels.ec }},
+    "ec": {{ .Values.commandLevels.ec }},
     #
     # Player info
     # Print IP, Account ID ("hash"), level, and whitelist status of a player
-    "info": {{ .Values.config.commandLevels.info }},
+    "info": {{ .Values.commandLevels.info }},
     #
     # Player idle time
     # Print 5 longest afk players
-    "showafk": {{ .Values.config.commandLevels.showafk }},
+    "showafk": {{ .Values.commandLevels.showafk }},
     #
     #
     # Ban a player by hash
-    "banid": {{ .Values.config.commandLevels.banid }},
+    "banid": {{ .Values.commandLevels.banid }},
     #
     #
     # Temp Ban a player by hash
-    "timebanid": {{ .Values.config.commandLevels.timebanid }},
+    "timebanid": {{ .Values.commandLevels.timebanid }},
     #
     #
     # Unban a player by hash
-    "unbanid": {{ .Values.config.commandLevels.unbanid }},
+    "unbanid": {{ .Values.commandLevels.unbanid }},
     #
     #
     # Unban a player by name
-    "unbanname": {{ .Values.config.commandLevels.unbanname }},
+    "unbanname": {{ .Values.commandLevels.unbanname }},
     #
     #
     # Make a player leader of their squad
-    "assignlead": {{ .Values.config.commandLevels.assignlead }},
+    "assignlead": {{ .Values.commandLevels.assignlead }},
     #
     #
 
@@ -730,7 +730,7 @@ ec_allowVacBanned = True
 
 # Report this as your external IP to the master server.
 # Do not touch unless you have multiple interfaces
-sv_externalIP = {{ .Values.config.externalIP | quote }}
+sv_externalIP = {{ .Values.externalIP | quote }}
 
 # Shared secret between gameserver and murmur. Prevents players that are not on the server from speaking on mumble.
 # Gameserver and murmur should set this to the same secret value.
@@ -741,7 +741,7 @@ mum_mumbleSecret = {{ .Values.murmurSecret | quote }}
 
 # Country flag to display on PRSPY.
 # Must be 2 letters of the country, such as "US" or "RU".
-sv_countryflag = {{ .Values.config.countryflag | quote }}
+sv_countryflag = {{ .Values.countryflag | quote }}
 
 # Record admin and player squad chat that is prefixed with ! into tracker files
 track_commandchat = True

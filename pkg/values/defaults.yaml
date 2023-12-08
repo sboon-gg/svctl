@@ -1,148 +1,146 @@
-murmur:
-  port: 64740
+murmurPort: 64740
 
-prbf2:
-  ports:
-    game: 16567
-    stats: 27900
-    gamespy: 29900
-    console: 4711
-    prism: 4712
+ports:
+  game: 16567
+  stats: 27900
+  gamespy: 29900
+  console: 4711
+  prism: 4712
 
-  countryflag: "??"
-  ip: "127.0.0.1"
-  externalIP: ""
-  name: "PR:BF2 Server"
-  password: ""
-  internet: 0
-  sponsorLogoURL: ""
-  communityLogoURL: ""
-  maxPlayers: 64
-  votingEnabled: 1
-  demoQuality: 1
+countryflag: "??"
+ip: "127.0.0.1"
+externalIP: ""
+name: "PR:BF2 Server"
+password: ""
+internet: 0
+sponsorLogoURL: ""
+communityLogoURL: ""
+maxPlayers: 64
+votingEnabled: 1
+demoQuality: 1
 
-  sponsoreMessage:
-    enabled: true
-    message: "§C1001***§C1001 This server is powered by §C1001RealityAdmin ***§C1001"
-    interval: 600
+sponsorMessage:
+  enabled: true
+  message: "§C1001***§C1001 This server is powered by §C1001RealityAdmin ***§C1001"
+  interval: 600
 
-  squads:
-    noSquadsBefore: 90
-    resignEarly: false
-    kickLimit: 0
-    kickSquadLess: false
-    kickSquadLessTime: 30
-    kickSquadLessAFK: true
-    kickSquadLessAFKTime: 1200
-    kickAFKPercent: 0.9
-    kickSquadedAFK: false
-    kickSquadedAFKTime: 1500
+squads:
+  noSquadsBefore: 90
+  resignEarly: false
+  kickLimit: 0
+  kickSquadLess: false
+  kickSquadLessTime: 30
+  kickSquadLessAFK: true
+  kickSquadLessAFKTime: 1200
+  kickAFKPercent: 0.9
+  kickSquadedAFK: false
+  kickSquadedAFKTime: 1500
 
-  admins: []
-    # - name: player
-    #   hash: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-    #   level: 0
-  liteAdmins: [] # TODO: unsuported
-  prismUsers: []
-    # - name: username
-    #   password: test-password
-    #   level: 0
+admins: []
+  # - name: player
+  #   hash: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  #   level: 0
+liteAdmins: [] # TODO: unsuported
+prismUsers: []
+  # - name: username
+  #   password: test-password
+  #   level: 0
 
-  reservedSlotsNum: 0
-  reservedSlots: []
-    # - "player"
+reservedSlotsNum: 0
+reservedSlots: []
+  # - "player"
 
-  maplist: []
-    # - name: "operation_marlin"
-    #   layer: "64"
-    #   mode: "gpm_cq"
-    # - mode: "gpm_cq"
-    # - mode: "gpm_insurgency"
+maplist: []
+  # - name: "operation_marlin"
+  #   layer: "64"
+  #   mode: "gpm_cq"
+  # - mode: "gpm_cq"
+  # - mode: "gpm_insurgency"
 
-  # List of all available maps
-  allMaps: []
-    # - name: "operation_fading_reach"
-    #   layer: "64"
-    #   mode: "gpm_cq"
-  
-  commandAliases:
-    # Commented out to provide defaults in order (for template comparison)
-    # kick: ["k"]
-    # tempban: ["tb"]
-    # roundban: ["rb"]
-    # ban: ["b"]
-    # report: ["r"]
-    # reportplayer: ["rp"]
-    # warn: ["w"]
-    # say: ["s"]
-    # message: ["m"]
-    # sayteam: ["st"]
-    # unban: ["ub"]
-    # mapvote: ["mv"]
-    # history:
-    #   - lastmap
-    #   - lastmaps
-    # ungrief: ["ug"]
-  
-  reasons:
-    # Commented out to provide defaults in order (for template comparison)
-    # "afk":      "You were AFK!"
-    # "dis":      "You're bringing the game into disrepute. Be gone, foul demon!"
-    # "fail":     "You are a failure"
-    # "steal":    "Asset stealing"
-    # "tk":       "Stop teamkilling!"
-    # "lang":     "Watch your language!"
-    # "language": "Keep your language clean!"
-    # "locked":   " Open your locked squad!"
-    # "solo":     "Your vehicle is not properly manned!"
-    # "spam":     "Stop chat-spamming!"
+# List of all available maps
+allMaps: []
+  # - name: "operation_fading_reach"
+  #   layer: "64"
+  #   mode: "gpm_cq"
 
-  commandLevels:
-    aa: 1
-    ab: 1
-    admins: 777
-    assignlead: 0
-    br: 777
-    ban: 1
-    banid: 0
-    ec: 1
-    flip: 777
-    fly: 0
-    kick: 2
-    kill: 1
-    givelead: 777
-    hash: 2
-    help: 2
-    history: 2
-    init: 2
-    info: 2
-    mapvote: 2
-    message: 2
-    roundban: 1
-    reload: 1
-    report: 777
-    resetsquads: 1
-    resign: 2
-    resignall: 2
-    reportplayer: 777
-    runnext: 2
-    rules: 777
-    say: 2
-    sayteam: 2
-    scramble: 0
-    setnext: 2
-    showafk: 1
-    shownext: 777
-    stopserver: 1
-    swapteams: 0
-    switch: 2
-    timeban: 1
-    timebanid: 0
-    tempban: 1
-    tickets: 0
-    unban: 1
-    unbanid: 0
-    unbanname: 0
-    ungrief: 1
-    warn: 2
-    website: 777
+commandAliases:
+  # Commented out to provide defaults in order (for template comparison)
+  # kick: ["k"]
+  # tempban: ["tb"]
+  # roundban: ["rb"]
+  # ban: ["b"]
+  # report: ["r"]
+  # reportplayer: ["rp"]
+  # warn: ["w"]
+  # say: ["s"]
+  # message: ["m"]
+  # sayteam: ["st"]
+  # unban: ["ub"]
+  # mapvote: ["mv"]
+  # history:
+  #   - lastmap
+  #   - lastmaps
+  # ungrief: ["ug"]
+
+reasons:
+  # Commented out to provide defaults in order (for template comparison)
+  # "afk":      "You were AFK!"
+  # "dis":      "You're bringing the game into disrepute. Be gone, foul demon!"
+  # "fail":     "You are a failure"
+  # "steal":    "Asset stealing"
+  # "tk":       "Stop teamkilling!"
+  # "lang":     "Watch your language!"
+  # "language": "Keep your language clean!"
+  # "locked":   " Open your locked squad!"
+  # "solo":     "Your vehicle is not properly manned!"
+  # "spam":     "Stop chat-spamming!"
+
+commandLevels:
+  aa: 1
+  ab: 1
+  admins: 777
+  assignlead: 0
+  br: 777
+  ban: 1
+  banid: 0
+  ec: 1
+  flip: 777
+  fly: 0
+  kick: 2
+  kill: 1
+  givelead: 777
+  hash: 2
+  help: 2
+  history: 2
+  init: 2
+  info: 2
+  mapvote: 2
+  message: 2
+  roundban: 1
+  reload: 1
+  report: 777
+  resetsquads: 1
+  resign: 2
+  resignall: 2
+  reportplayer: 777
+  runnext: 2
+  rules: 777
+  say: 2
+  sayteam: 2
+  scramble: 0
+  setnext: 2
+  showafk: 1
+  shownext: 777
+  stopserver: 1
+  swapteams: 0
+  switch: 2
+  timeban: 1
+  timebanid: 0
+  tempban: 1
+  tickets: 0
+  unban: 1
+  unbanid: 0
+  unbanname: 0
+  ungrief: 1
+  warn: 2
+  website: 777
