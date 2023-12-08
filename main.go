@@ -1,7 +1,14 @@
 package main
 
 import (
+	"bytes"
+	_ "embed"
+	"fmt"
+	"path/filepath"
+
+	"embed"
 	"os"
+	"text/template"
 
 	"github.com/sboon-gg/prbf2-templates/pkg/config"
 	"gopkg.in/yaml.v3"
@@ -10,7 +17,9 @@ import (
 // print templates
 // write templates
 // handle extras
-//
+
+//go:embed templates/*
+var templates embed.FS
 
 func main() {
 	err := run()
@@ -31,5 +40,49 @@ func run() error {
 		return err
 	}
 
+	tmpl, err := template.New("").Funcs(
+		template.FuncMap{
+			"pyBool": pyBool,
+			"quote":  quote,
+		},
+	).ParseFS(templates, "templates/*/*.tpl")
+	if err != nil {
+		return err
+	}
+
+	data := struct {
+		Values config.Config
+	}{conf}
+
+	s := ""
+	buf := bytes.NewBufferString(s)
+
+	for _, templateSpec := range conf.Templates {
+		println("rendering", templateSpec.Source, "to", templateSpec.Destination)
+		err = tmpl.ExecuteTemplate(buf, filepath.Base(templateSpec.Source), data)
+		if err != nil {
+			return err
+		}
+	}
+
+	println(buf.String())
+
 	return nil
+}
+
+func pyBool(v any) (string, error) {
+	b, ok := v.(bool)
+	if !ok {
+		return "", fmt.Errorf("Expect type bool - got %T", v)
+	}
+
+	if b {
+		return "True", nil
+	}
+
+	return "False", nil
+}
+
+func quote(v any) string {
+	return fmt.Sprintf("%q", v)
 }

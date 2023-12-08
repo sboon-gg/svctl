@@ -3,15 +3,15 @@ sv.serverName {{ .Values.config.name | quote }}
 rem Password for joining the server
 sv.password {{ .Values.config.password | quote }}
 rem 1 for internet servers, 0 for everything else
-sv.internet {{ default 0 .Values.internet }}
+sv.internet {{ .Values.internet }}
 rem IPv4 of the server
 sv.serverIP {{ .Values.config.ip | quote }}
 rem Port of the server
-sv.serverPort {{ default .Values.prbf2.ports.game 16567 }}
+sv.serverPort {{ .Values.prbf2.ports.game }}
 rem Port to query server information
-sv.gameSpyPort {{ default .Values.prbf2.ports.gamespy 29900 }}
+sv.gameSpyPort {{ .Values.prbf2.ports.gamespy }}
 rem IPv4:Port of the mumble server to use. Leave empty to disable mumble
-sv.voipServerRemoteIP {{ if .Values.config.externalIP }}{{ printf "%s:%d" .Values.config.externalIP (.Values.murmur.port | int) | quote }}{{ else }}""{{ end }}
+sv.voipServerRemoteIP {{ if .Values.config.externalIP }}{{ printf "%s:%d" .Values.config.externalIP .Values.murmur.port | quote }}{{ else }}""{{ end }}
 rem Message displayed in loading screen
 sv.welcomeMessage "Welcome to a Project Reality server!"
 rem Message displayed in server browser. User '|' for line breaks and add 'pr_maplist' to add next maps in rotation
@@ -25,7 +25,7 @@ sv.allowFreeCam 0
 sv.allowExternalViews 0
 sv.allowNoseCam 0
 sv.hitIndicator 0
-sv.maxPlayers {{ default .maxPlayers 64 }}
+sv.maxPlayers {{ .maxPlayers }}
 sv.numPlayersNeededToStart 1
 sv.notEnoughPlayersRestartDelay 15
 sv.ticketRatio 100
@@ -39,7 +39,7 @@ sv.vehicleSplashFriendlyFire 100
 sv.tkPunishEnabled 1
 sv.tkNumPunishToKick 3
 sv.tkPunishByDefault 0
-sv.votingEnabled {{ default .votingEnabled 1 }}
+sv.votingEnabled {{ .votingEnabled }}
 sv.voteTime 90
 sv.minPlayersForVoting 1
 sv.allowNATNegotiation 0
@@ -47,7 +47,7 @@ sv.autoRecord 0
 sv.demoIndexURL http://
 sv.demoDownloadURL http://
 sv.autoDemoHook "adminutils/demo/rotate_demo.exe"
-sv.demoQuality {{ default .demoQuality 1 }}
+sv.demoQuality {{ .demoQuality }}
 sv.timeBeforeRestartMap 30
 sv.autoBalanceTeam 0
 sv.teamRatioPercent 100

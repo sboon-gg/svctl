@@ -20,12 +20,12 @@ RAEnabled = True
 #
 # Display a sponsor message.
 # Default is False
-sponsorMessageEnabled = {{ include "prbf2-server.pyBool" .sponsorMessageEnabled }}
+sponsorMessageEnabled = {{ pyBool .Values.sponsorMessage.enabled }}
 #
 # The "sponsormessage" will be displayed every [interval] seconds.
 # Default is 600 seconds
-sponsorMessage = {{ .Values.config.sponsorMessage | quote }}
-sponsorMessageInterval = {{ .Values.config.sponsorMessageInterval }}
+sponsorMessage = {{ .Values.sponsorMessage.message | quote }}
+sponsorMessageInterval = {{ .Values.sponsorMessage.interval }}
 #
 # Are admins alerted about game notifications? (E.g. FOB Destruction via radio).
 # Default is True
@@ -44,7 +44,7 @@ sqd_noSquadsBefore = {{ .Values.config.noSquadsBefore }}
 #
 # Resign early
 # Default is False
-sqd_resignEarly = {{ include "prbf2-server.pyBool" .resignEarly }}
+sqd_resignEarly = {{ pyBool .resignEarly }}
 #
 # Amount of failed attempts before kick
 # Default is 0 (disabled)
@@ -52,7 +52,7 @@ sqd_kickLimit = 0
 #
 # Kick squadless
 # Default is False (disabled)
-sqd_kickSquadLess = {{ include "prbf2-server.pyBool" .kickSquadLess }}
+sqd_kickSquadLess = {{ pyBool .kickSquadLess }}
 #
 # Time until squadless players are kicked
 # Default is 30 seconds
@@ -61,7 +61,7 @@ sqd_kickSquadLessTime = {{ .Values.config.kickSquadLessTime }}
 #
 # Kick unassigned AFK players
 # Default is True (enabled)
-sqd_kickSquadLessAFK = {{ include "prbf2-server.pyBool" .kickSquadLessAFK }}
+sqd_kickSquadLessAFK = {{ pyBool .kickSquadLessAFK }}
 #
 #
 # Kick unassigned afk players after the specified number of seconds.
@@ -74,7 +74,7 @@ sqd_kickAFKPercent = {{ .Values.config.kickAFKPercent }}
 #
 # Kick AFK players *in a squad*
 # Default is False (disabled)
-sqd_kickSquadedAFK = {{ include "prbf2-server.pyBool" .kickSquadedAFK }}
+sqd_kickSquadedAFK = {{ pyBool .kickSquadedAFK }}
 #
 # Kick AFK players that are in a squad after the specified number of seconds.
 # 1500 seconds (25 mins) default - give at least 15 mins (900 sec) for players in a squad to allow for timers
