@@ -2,15 +2,25 @@ package maplist
 
 import (
 	"bufio"
+	_ "embed"
 	"fmt"
 	"strconv"
 	"strings"
 )
 
+//go:embed maplist.con
+var defaultSource []byte
+
 type MapInfo struct {
 	Name  string `json:"name"`
 	Mode  string `json:"mode"`
 	Layer int    `json:"layer"`
+}
+
+var DefaultMapList []MapInfo
+
+func init() {
+	DefaultMapList = Parse(string(defaultSource))
 }
 
 func Parse(maplistContent string) []MapInfo {
