@@ -124,7 +124,6 @@ prbf2:
     resetsquads: 1
     resign: 2
     resignall: 2
-    report: 777
     reportplayer: 777
     runnext: 2
     rules: 777

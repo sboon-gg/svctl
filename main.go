@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"embed"
-	"os"
 	"text/template"
 
 	"github.com/sboon-gg/prbf2-templates/pkg/config"
@@ -17,6 +16,10 @@ import (
 // print templates
 // write templates
 // handle extras
+// compare local templates with existing
+
+//go:embed defaults.yaml
+var defaults []byte
 
 //go:embed templates/*
 var templates embed.FS
@@ -29,7 +32,7 @@ func main() {
 }
 
 func run() error {
-	content, err := os.ReadFile("config.yaml")
+	content, err := templates.ReadFile("templates/config.yaml")
 	if err != nil {
 		return err
 	}
@@ -41,7 +44,7 @@ func run() error {
 	}
 
 	values := make(map[string]any)
-	err = yaml.Unmarshal(content, &values)
+	err = yaml.Unmarshal(defaults, &values)
 	if err != nil {
 		return err
 	}
