@@ -144,3 +144,5 @@ commandLevels:
   ungrief: 1
   warn: 2
   website: 777
+
+murmurSecret: ""

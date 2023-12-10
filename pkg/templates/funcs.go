@@ -2,13 +2,15 @@ package templates
 
 import (
 	"fmt"
+	"os"
 	"text/template"
 )
 
-func funcMap() template.FuncMap {
+func FuncMap() template.FuncMap {
 	return template.FuncMap{
 		"pyBool": pyBool,
 		"quote":  quote,
+		"env":    env,
 	}
 }
 
@@ -27,4 +29,13 @@ func pyBool(v any) (string, error) {
 
 func quote(v any) string {
 	return fmt.Sprintf("%q", v)
+}
+
+func env(v any) (string, error) {
+	s, ok := v.(string)
+	if !ok {
+		return "", fmt.Errorf("Expect type bool - got %T", v)
+	}
+
+	return os.Getenv(s), nil
 }

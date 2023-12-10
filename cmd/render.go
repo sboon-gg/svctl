@@ -1,20 +1,24 @@
 package cmd
 
 import (
-	"errors"
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
+	"text/template"
 
+	"dario.cat/mergo"
 	"github.com/sboon-gg/prbf2-templates/pkg/templates"
 	"github.com/sboon-gg/prbf2-templates/pkg/values"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 type renderFlagOpts struct {
 	installationPath string
 	defaults         bool
 	dryRun           bool
+	values           []string
 }
 
 func renderCmd() *cobra.Command {
@@ -32,25 +36,62 @@ func renderCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&opts.defaults, "defaults", false, "Use default values")
+	// cmd.Flags().BoolVar(&opts.defaults, "defaults", true, "Use default values")
 	cmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "Print out rendered files")
+	cmd.Flags().StringSliceVar(&opts.values, "values", []string{}, "")
 
 	return cmd
 }
 
 func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
-	si, err := newServerInstance(opts.installationPath)
+	// si, err := newServerInstance(opts.installationPath)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// if !si.HasConfigCache() {
+	// 	return errors.New("Script has not been initialized, run `init` first.")
+	// }
+
+	t := templates.New(templates.DefaultTemplates, templates.DefaultTemplateFiles)
+
+	var allValues map[string]any
+	err := mergo.Map(&allValues, values.DefaultValues)
 	if err != nil {
 		return err
 	}
 
-	if !si.HasConfigCache() {
-		return errors.New("Script has not been initialized, run `init` first.")
+	for _, valuesFile := range opts.values {
+		content, err := os.ReadFile(valuesFile)
+		if err != nil {
+			return err
+		}
+
+		tmpl := template.New("").Funcs(templates.FuncMap())
+		tmpl, err = tmpl.Parse(string(content))
+		if err != nil {
+			return err
+		}
+
+		var buf bytes.Buffer
+		err = tmpl.Execute(&buf, allValues)
+		if err != nil {
+			return err
+		}
+
+		var extraValues map[string]any
+		err = yaml.Unmarshal(buf.Bytes(), &extraValues)
+		if err != nil {
+			return err
+		}
+
+		err = mergo.Map(&allValues, extraValues)
+		if err != nil {
+			return err
+		}
 	}
 
-	t := templates.New(templates.DefaultTemplates, nil)
-
-	out, err := t.Render(values.DefaultValues)
+	out, err := t.Render(allValues)
 	if err != nil {
 		return err
 	}

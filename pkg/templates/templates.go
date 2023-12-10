@@ -54,18 +54,11 @@ func New(config []Template, files fs.FS) *Templates {
 func (t *Templates) Render(values map[string]any) (map[string][]byte, error) {
 	rendered := make(map[string][]byte)
 
-	tmpl := template.New("").Funcs(funcMap())
+	tmpl := template.New("").Funcs(FuncMap())
 
-	tmpl, err := tmpl.ParseFS(DefaultTemplateFiles, "templates/*.tpl")
+	tmpl, err := tmpl.ParseFS(t.files, "templates/*.tpl")
 	if err != nil {
 		return rendered, err
-	}
-
-	if t.files != nil {
-		tmpl, err = tmpl.ParseFS(t.files, "templates/*.tpl")
-		if err != nil {
-			return rendered, err
-		}
 	}
 
 	data := make(map[string]any)
