@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"dario.cat/mergo"
+	"github.com/sboon-gg/svctl/pkg/templates"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -66,7 +67,7 @@ func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
 				path = filepath.Join(si.path, path)
 			}
 
-			err = mergeValuesFile(&allValues, path)
+			err = mergeValuesFile(t, &allValues, path)
 			if err != nil {
 				return err
 			}
@@ -78,8 +79,8 @@ func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
 		}
 	}
 
-	for _, valuesFile := range opts.values {
-		err = mergeValuesFile(&allValues, valuesFile)
+	for _, file := range opts.values {
+		err = mergeValuesFile(t, &allValues, file)
 		if err != nil {
 			return err
 		}
@@ -118,17 +119,22 @@ func init() {
 	rootCmd.AddCommand(renderCmd())
 }
 
-func mergeValuesFile(allValues *map[string]any, valuseFile string) error {
-	content, err := os.ReadFile(valuesFile)
+func mergeValuesFile(t *templates.Templates, allValues *map[string]any, file string) error {
+	content, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}
 
-	var extraValues map[string]any
-	err = yaml.Unmarshal(content, &extraValues)
+	out, err := t.RenderFromString(string(content))
 	if err != nil {
 		return err
 	}
 
-	return mergo.Merge(&allValues, extraValues, mergo.WithOverride)
+	extraValues := make(map[string]any)
+	err = yaml.Unmarshal([]byte(out), &extraValues)
+	if err != nil {
+		return err
+	}
+
+	return mergo.Merge(allValues, extraValues, mergo.WithOverride)
 }

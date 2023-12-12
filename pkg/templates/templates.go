@@ -45,35 +45,23 @@ func NewFromPath(path string) (*Templates, error) {
 	dir := os.DirFS(path)
 	t.files = dir
 
-	confFile, err := dir.Open(configFileName)
-	if err != nil {
-		return nil, err
-	}
-
-	var bytes []byte
-	_, err = confFile.Read(bytes)
+	content, err := fs.ReadFile(dir, configFileName)
 	if err != nil {
 		return nil, err
 	}
 
 	var conf TemplatesConfig
-	err = yaml.Unmarshal(bytes, &conf)
+	err = yaml.Unmarshal(content, &conf)
 	if err != nil {
 		return nil, err
 	}
 
 	t.config = conf
 
-	defaultFile, err := dir.Open(DefaultsFileName)
+	content, err = fs.ReadFile(dir, DefaultsFileName)
 	if err == nil {
-		var bytes []byte
-		_, err = defaultFile.Read(bytes)
-		if err != nil {
-			return nil, err
-		}
-
 		var defaults map[string]any
-		err = yaml.Unmarshal(bytes, &defaults)
+		err = yaml.Unmarshal(content, &defaults)
 		if err != nil {
 			return nil, err
 		}
@@ -84,13 +72,33 @@ func NewFromPath(path string) (*Templates, error) {
 	return &t, nil
 }
 
+func (t *Templates) RenderFromString(text string) (string, error) {
+	tmpl := template.New("").Funcs(FuncMap())
+
+	data := map[string]any{
+		"Values": t.defaults,
+	}
+
+	tmpl, err := tmpl.Parse(text)
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, data)
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
+}
+
 func (t *Templates) Render(values map[string]any) (map[string][]byte, error) {
 	rendered := make(map[string][]byte)
 
 	tmpl := template.New("").Funcs(FuncMap())
 
 	if t.defaults != nil {
-		values := values
 		err := mergo.Merge(&values, t.defaults)
 		if err != nil {
 			return rendered, err
