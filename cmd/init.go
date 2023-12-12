@@ -4,11 +4,15 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"errors"
+
 	"github.com/spf13/cobra"
 )
 
 type initOpts struct {
-	installPath string
+	installPath   string
+	templatesRepo string
+	token         string
 }
 
 func initCmd() *cobra.Command {
@@ -24,6 +28,9 @@ func initCmd() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringVar(&opts.templatesRepo, "templates", "", "Repository with templates")
+	cmd.Flags().StringVar(&opts.token, "token", "", "Token to use when cloning templates repo")
+
 	return cmd
 }
 
@@ -33,21 +40,28 @@ func (opts *initOpts) Run() error {
 		return err
 	}
 
-	if !si.HasConfigCache() {
-		err = si.WriteDefaultConfig()
-		if err != nil {
-			return err
-		}
-
-		err = si.WriteDefaultValues()
-		if err != nil {
-			return err
-		}
-
-		return si.WriteDefaultTemplates()
+	if si.HasSvctlDir() {
+		return errors.New("svctl was already initialized on this path - remove .svctl directory before initializing")
 	}
 
-	return nil
+	err = si.CreateDir()
+	if err != nil {
+		return err
+	}
+
+	if opts.templatesRepo != "" {
+		err = si.CloneTemplates(opts.templatesRepo, opts.token)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = si.WriteDefaultConfig()
+	if err != nil {
+		return err
+	}
+
+	return si.WriteValues()
 }
 
 func init() {

@@ -1,15 +1,12 @@
 package cmd
 
 import (
-	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"text/template"
 
 	"dario.cat/mergo"
-	"github.com/sboon-gg/prbf2-templates/pkg/templates"
-	"github.com/sboon-gg/prbf2-templates/pkg/values"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -44,48 +41,45 @@ func renderCmd() *cobra.Command {
 }
 
 func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
-	// si, err := newServerInstance(opts.installationPath)
-	// if err != nil {
-	// 	return err
-	// }
-	//
-	// if !si.HasConfigCache() {
-	// 	return errors.New("Script has not been initialized, run `init` first.")
-	// }
-
-	t := templates.New(templates.DefaultTemplates, templates.DefaultTemplateFiles)
-
-	var allValues map[string]any
-	err := mergo.Map(&allValues, values.DefaultValues)
+	si, err := newServerInstance(opts.installationPath)
 	if err != nil {
 		return err
 	}
 
+	if !si.HasSvctlDir() {
+		return errors.New("Script has not been initialized, run `init` first.")
+	}
+
+	conf, err := si.Config()
+	if err != nil {
+		return err
+	}
+
+	t, err := si.Templates()
+
+	var allValues map[string]any
+
+	for _, values := range conf.Values {
+		if values.File != nil {
+			path := *values.File
+			if !filepath.IsAbs(path) {
+				path = filepath.Join(si.path, path)
+			}
+
+			err = mergeValuesFile(&allValues, path)
+			if err != nil {
+				return err
+			}
+		} else if values.Data != nil {
+			err = mergo.Merge(&allValues, values.Data, mergo.WithOverride)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	for _, valuesFile := range opts.values {
-		content, err := os.ReadFile(valuesFile)
-		if err != nil {
-			return err
-		}
-
-		tmpl := template.New("").Funcs(templates.FuncMap())
-		tmpl, err = tmpl.Parse(string(content))
-		if err != nil {
-			return err
-		}
-
-		var buf bytes.Buffer
-		err = tmpl.Execute(&buf, allValues)
-		if err != nil {
-			return err
-		}
-
-		var extraValues map[string]any
-		err = yaml.Unmarshal(buf.Bytes(), &extraValues)
-		if err != nil {
-			return err
-		}
-
-		err = mergo.Map(&allValues, extraValues)
+		err = mergeValuesFile(&allValues, valuesFile)
 		if err != nil {
 			return err
 		}
@@ -122,4 +116,19 @@ func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
 
 func init() {
 	rootCmd.AddCommand(renderCmd())
+}
+
+func mergeValuesFile(allValues *map[string]any, valuseFile string) error {
+	content, err := os.ReadFile(valuesFile)
+	if err != nil {
+		return err
+	}
+
+	var extraValues map[string]any
+	err = yaml.Unmarshal(content, &extraValues)
+	if err != nil {
+		return err
+	}
+
+	return mergo.Merge(&allValues, extraValues, mergo.WithOverride)
 }

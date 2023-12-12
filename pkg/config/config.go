@@ -1,11 +1,21 @@
 package config
 
-import "github.com/sboon-gg/prbf2-templates/pkg/templates"
-
 type Config struct {
-	Templates []templates.Template `yaml:"templates"`
+	Values []Values `yaml:"values"`
 }
 
-var DefaultConfig = Config{
-	Templates: templates.DefaultTemplates,
+type Values struct {
+	File *string        `yaml:"file,omitempty"`
+	Data map[string]any `yaml:"data,omitempty"`
 }
+
+var (
+	DefaultValuesFile = "values.yaml"
+	DefaultConfig     = Config{
+		Values: []Values{
+			{
+				File: &DefaultValuesFile,
+			},
+		},
+	}
+)

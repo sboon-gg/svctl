@@ -2,20 +2,25 @@ package cmd
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/sboon-gg/prbf2-templates/pkg/config"
-	"github.com/sboon-gg/prbf2-templates/pkg/templates"
-	"github.com/sboon-gg/prbf2-templates/pkg/values"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/sboon-gg/svctl/pkg/config"
+	"github.com/sboon-gg/svctl/pkg/templates"
 	"gopkg.in/yaml.v3"
 )
 
 const (
-	dotDir = ".templater"
+	svctlDir   = ".svctl"
+	valuesFile = "values.yaml"
+	configFile = "config.yaml"
+
+	templatesDir = "templates"
 )
 
 type serverInstance struct {
@@ -28,72 +33,71 @@ func newServerInstance(path string) (*serverInstance, error) {
 	}
 
 	return &serverInstance{
-		path: path,
+		path: filepath.Join(path, svctlDir),
 	}, nil
 }
 
-func (si *serverInstance) dotDir() string {
-	return filepath.Join(si.path, dotDir)
+func (si *serverInstance) CloneTemplates(repoURL, token string) error {
+	_, err := git.PlainClone(filepath.Join(si.path, templatesDir), false, &git.CloneOptions{
+		URL: repoURL,
+		Auth: &http.BasicAuth{
+			Username: "git",
+			Password: token,
+		},
+		InsecureSkipTLS: true,
+	})
+	return err
 }
 
-func (si *serverInstance) HasConfigCache() bool {
-	if _, err := os.Stat(si.dotDir()); os.IsNotExist(err) {
+func (si *serverInstance) Templates() (*templates.Templates, error) {
+	return templates.NewFromPath(filepath.Join(si.path, templatesDir))
+}
+
+func (si *serverInstance) HasSvctlDir() bool {
+	if _, err := os.Stat(si.path); os.IsNotExist(err) {
 		return false
 	}
 	return true
 }
 
-func (si *serverInstance) CreateConfigDir() error {
-	return os.Mkdir(si.dotDir(), os.ModePerm)
+func (si *serverInstance) Config() (*config.Config, error) {
+	content, err := os.ReadFile(filepath.Join(si.path, configFile))
+	if err != nil {
+		return nil, err
+	}
+
+	var conf config.Config
+	err = yaml.Unmarshal(content, &conf)
+	if err != nil {
+		return nil, err
+	}
+
+	return &conf, nil
+}
+
+func (si *serverInstance) CreateDir() error {
+	return os.Mkdir(si.path, os.ModePerm)
 }
 
 func (si *serverInstance) WriteDefaultConfig() error {
-	if !si.HasConfigCache() {
-		if err := si.CreateConfigDir(); err != nil {
-			return err
-		}
-	}
-
-	out, err := yaml.Marshal(config.DefaultConfig)
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+	err := enc.Encode(config.DefaultConfig)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(filepath.Join(si.dotDir(), "config.yaml"), out, 0755)
+	return os.WriteFile(filepath.Join(si.path, "config.yaml"), buf.Bytes(), 0755)
 }
 
-func (si *serverInstance) WriteDefaultTemplates() error {
-	if err := os.MkdirAll(filepath.Join(si.dotDir(), "templates"), os.ModePerm); err != nil {
-		return err
+func (si *serverInstance) WriteValues() error {
+	content, err := os.ReadFile(filepath.Join(si.path, templatesDir, templates.DefaultsFileName))
+	if err == nil {
+		content = []byte(commentOutWholeYamlFile(string(content)))
 	}
 
-	return fs.WalkDir(templates.DefaultTemplateFiles, "templates", func(path string, d fs.DirEntry, err error) error {
-		if d.IsDir() {
-			return nil
-		}
-
-		content, err := fs.ReadFile(templates.DefaultTemplateFiles, path)
-		if err != nil {
-			return err
-		}
-
-		return os.WriteFile(filepath.Join(si.dotDir(), path), content, 0755)
-	})
-}
-
-func (si *serverInstance) WriteDefaultValues() error {
-	if !si.HasConfigCache() {
-		if err := si.CreateConfigDir(); err != nil {
-			return err
-		}
-	}
-
-	err := os.WriteFile(filepath.Join(si.dotDir(), "values.yaml"), []byte(commentOutWholeYamlFile(string(values.DefaultValuesFile))), 0755)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(filepath.Join(si.dotDir(), "defaults.yaml"), values.DefaultValuesFile, 0755)
+	return os.WriteFile(filepath.Join(si.path, valuesFile), content, 0755)
 }
 
 func commentOutWholeYamlFile(content string) string {
