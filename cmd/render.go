@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"dario.cat/mergo"
+	"github.com/sboon-gg/svctl/pkg/config"
 	"github.com/sboon-gg/svctl/pkg/templates"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -58,9 +59,25 @@ func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
 
 	t, err := si.Templates()
 
+	valuesSources := conf.Values
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	for _, file := range opts.values {
+		if !filepath.IsAbs(file) {
+			file = filepath.Join(wd, file)
+		}
+		valuesSources = append(valuesSources, config.Values{
+			File: &file,
+		})
+	}
+
 	var allValues map[string]any
 
-	for _, values := range conf.Values {
+	for _, values := range valuesSources {
 		if values.File != nil {
 			path := *values.File
 			if !filepath.IsAbs(path) {
@@ -76,13 +93,6 @@ func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
 			if err != nil {
 				return err
 			}
-		}
-	}
-
-	for _, file := range opts.values {
-		err = mergeValuesFile(t, &allValues, file)
-		if err != nil {
-			return err
 		}
 	}
 
