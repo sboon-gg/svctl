@@ -17,7 +17,12 @@ type renderFlagOpts struct {
 	installationPath string
 	defaults         bool
 	dryRun           bool
+	watch            bool
 	values           []string
+}
+
+func init() {
+	rootCmd.AddCommand(renderCmd())
 }
 
 func renderCmd() *cobra.Command {
@@ -37,24 +42,32 @@ func renderCmd() *cobra.Command {
 
 	// cmd.Flags().BoolVar(&opts.defaults, "defaults", true, "Use default values")
 	cmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "Print out rendered files")
+	cmd.Flags().BoolVar(&opts.watch, "watch", false, "Watch all values and config files")
 	cmd.Flags().StringSliceVar(&opts.values, "values", []string{}, "")
 
 	return cmd
 }
 
 func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
+	_, err := opts.render()
+	return err
+}
+
+func (opts *renderFlagOpts) render() ([]string, error) {
+	var files []string
+
 	si, err := newServerInstance(opts.installationPath)
 	if err != nil {
-		return err
+		return files, err
 	}
 
 	if !si.HasSvctlDir() {
-		return errors.New("Script has not been initialized, run `init` first.")
+		return files, errors.New("Script has not been initialized, run `init` first.")
 	}
 
 	conf, err := si.Config()
 	if err != nil {
-		return err
+		return files, err
 	}
 
 	t, err := si.Templates()
@@ -63,7 +76,7 @@ func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
 
 	wd, err := os.Getwd()
 	if err != nil {
-		return err
+		return files, err
 	}
 
 	for _, file := range opts.values {
@@ -86,47 +99,51 @@ func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
 
 			err = mergeValuesFile(t, &allValues, path)
 			if err != nil {
-				return err
+				return files, err
 			}
 		} else if values.Data != nil {
 			err = mergo.Merge(&allValues, values.Data, mergo.WithOverride)
 			if err != nil {
-				return err
+				return files, err
 			}
 		}
 	}
 
 	out, err := t.Render(allValues)
 	if err != nil {
-		return err
+		return files, err
 	}
 
+	if opts.dryRun {
+		for name, content := range out {
+			fmt.Printf(`File: %s\n---\n%s`, name, string(content))
+		}
+	} else {
+		err = opts.writeOutput(out)
+		if err != nil {
+			return files, err
+		}
+	}
+
+	return files, nil
+}
+
+func (opts *renderFlagOpts) writeOutput(out map[string][]byte) error {
 	for name, content := range out {
-		if opts.dryRun {
-			fmt.Printf(`File: %s
----
-%s
-`, name, string(content))
-		} else {
-			path := filepath.Join(opts.installationPath, name)
+		path := filepath.Join(opts.installationPath, name)
 
-			err = os.MkdirAll(filepath.Dir(path), os.ModePerm)
-			if err != nil {
-				return err
-			}
+		err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
+		if err != nil {
+			return err
+		}
 
-			err = os.WriteFile(path, content, 0755)
-			if err != nil {
-				return err
-			}
+		err = os.WriteFile(path, content, 0755)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
-}
-
-func init() {
-	rootCmd.AddCommand(renderCmd())
 }
 
 func mergeValuesFile(t *templates.Templates, allValues *map[string]any, file string) error {

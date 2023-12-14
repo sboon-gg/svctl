@@ -88,7 +88,7 @@ func (si *serverInstance) WriteDefaultConfig() error {
 		return err
 	}
 
-	return os.WriteFile(filepath.Join(si.path, "config.yaml"), buf.Bytes(), 0755)
+	return os.WriteFile(filepath.Join(si.path, configFile), buf.Bytes(), 0755)
 }
 
 func (si *serverInstance) WriteValues() error {
