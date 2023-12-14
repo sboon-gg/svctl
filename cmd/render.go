@@ -16,7 +16,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type renderFlagOpts struct {
+type renderOpts struct {
 	installationPath string
 	defaults         bool
 	dryRun           bool
@@ -29,7 +29,7 @@ func init() {
 }
 
 func renderCmd() *cobra.Command {
-	var opts renderFlagOpts
+	var opts renderOpts
 
 	cmd := &cobra.Command{
 		Use:          "render",
@@ -51,7 +51,7 @@ func renderCmd() *cobra.Command {
 	return cmd
 }
 
-func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
+func (opts *renderOpts) Run(cmd *cobra.Command) error {
 	watchedFiles, err := opts.render()
 	if err != nil {
 		return err
@@ -100,7 +100,7 @@ func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
 	}
 }
 
-func (opts *renderFlagOpts) render() ([]string, error) {
+func (opts *renderOpts) render() ([]string, error) {
 	var files []string
 
 	si, err := newServerInstance(opts.installationPath)
@@ -178,7 +178,7 @@ func (opts *renderFlagOpts) render() ([]string, error) {
 	return files, nil
 }
 
-func (opts *renderFlagOpts) writeOutput(out map[string][]byte) error {
+func (opts *renderOpts) writeOutput(out map[string][]byte) error {
 	for name, content := range out {
 		path := filepath.Join(opts.installationPath, name)
 
