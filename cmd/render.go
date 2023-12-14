@@ -3,8 +3,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/fsnotify/fsnotify"
 
 	"dario.cat/mergo"
 	"github.com/sboon-gg/svctl/pkg/config"
@@ -49,8 +52,52 @@ func renderCmd() *cobra.Command {
 }
 
 func (opts *renderFlagOpts) Run(cmd *cobra.Command) error {
-	_, err := opts.render()
-	return err
+	watchedFiles, err := opts.render()
+	if err != nil {
+		return err
+	}
+
+	if !opts.watch {
+		return nil
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return err
+	}
+	defer watcher.Close()
+
+	for _, file := range watchedFiles {
+		err = watcher.Add(file)
+		if err != nil {
+			return err
+		}
+	}
+
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return nil
+			}
+
+			if event.Has(fsnotify.Write | fsnotify.Create) {
+				watchedFiles, err = opts.render()
+				if err != nil {
+					log.Printf("Error rendering files: %s", err)
+				} else {
+					for _, file := range watchedFiles {
+						watcher.Add(file)
+					}
+				}
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return nil
+			}
+			log.Println("error:", err)
+		}
+	}
 }
 
 func (opts *renderFlagOpts) render() ([]string, error) {
@@ -64,6 +111,9 @@ func (opts *renderFlagOpts) render() ([]string, error) {
 	if !si.HasSvctlDir() {
 		return files, errors.New("Script has not been initialized, run `init` first.")
 	}
+
+	files = append(files, si.path)
+	files = append(files, filepath.Join(si.path, templatesDir))
 
 	conf, err := si.Config()
 	if err != nil {
