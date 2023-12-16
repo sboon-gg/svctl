@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/sboon-gg/svctl/pkg/config"
 	"github.com/sboon-gg/svctl/pkg/templates"
@@ -38,12 +39,17 @@ func newServerInstance(path string) (*serverInstance, error) {
 }
 
 func (si *serverInstance) CloneTemplates(repoURL, token string) error {
-	_, err := git.PlainClone(filepath.Join(si.path, templatesDir), false, &git.CloneOptions{
-		URL: repoURL,
-		Auth: &http.BasicAuth{
+	var auth transport.AuthMethod
+	if token != "" {
+		auth = &http.BasicAuth{
 			Username: "git",
 			Password: token,
-		},
+		}
+	}
+
+	_, err := git.PlainClone(filepath.Join(si.path, templatesDir), false, &git.CloneOptions{
+		URL:             repoURL,
+		Auth:            auth,
 		InsecureSkipTLS: true,
 	})
 	return err
