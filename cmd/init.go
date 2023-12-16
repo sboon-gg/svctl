@@ -19,8 +19,9 @@ func initCmd() *cobra.Command {
 	var opts initOpts
 
 	cmd := &cobra.Command{
-		Use:   "init",
-		Short: "A brief description of your command",
+		Use:   "init [prbf2_dir]",
+		Short: "Initialize svctl dir (.svctl) in PRBF2 installation directory",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.installPath = args[0]
 
