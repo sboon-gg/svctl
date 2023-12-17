@@ -159,7 +159,7 @@ func (opts *renderOpts) render() ([]string, error) {
 		}
 	}
 
-	out, err := t.Render(allValues)
+	out, err := t.RenderAll(allValues)
 	if err != nil {
 		return files, err
 	}
@@ -202,7 +202,7 @@ func mergeValuesFile(t *templates.Templates, allValues *map[string]any, file str
 		return err
 	}
 
-	out, err := t.RenderFromString(string(content))
+	out, err := t.Render(string(content), *allValues)
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"text/template"
 
 	"dario.cat/mergo"
@@ -23,6 +22,10 @@ const (
 )
 
 type Values map[string]any
+
+type Data struct {
+	Values Values
+}
 
 type Template struct {
 	Source      string `yaml:"src"`
@@ -82,74 +85,68 @@ func NewFromPath(path string) (*Templates, error) {
 	return New(conf, dir)
 }
 
-func (t *Templates) RenderFromString(text string) (string, error) {
-	tmpl := template.New("").Funcs(FuncMap())
+func (t *Templates) template(tplContent string) (*template.Template, error) {
+	return template.New("").Funcs(FuncMap()).Parse(tplContent)
+}
 
-	data := map[string]any{
-		"Values": t.defaults,
+func (t *Templates) prepData(values Values) (Data, error) {
+	data := Data{
+		Values: values,
 	}
 
-	tmpl, err := tmpl.Parse(text)
+	err := mergo.Merge(&values, t.defaults)
 	if err != nil {
-		return "", err
+		return data, err
+	}
+
+	return data, nil
+}
+
+func (t *Templates) Render(template string, values Values) ([]byte, error) {
+	tmpl, err := t.template(template)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := t.prepData(values)
+	if err != nil {
+		return nil, err
 	}
 
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, data)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return buf.String(), nil
+	return buf.Bytes(), nil
 }
 
-func (t *Templates) Render(values map[string]any) (map[string][]byte, error) {
+func (t *Templates) RenderAll(values map[string]any) (map[string][]byte, error) {
 	rendered := make(map[string][]byte)
 
-	tmpl := template.New("").Funcs(FuncMap())
-
-	if t.defaults != nil {
-		err := mergo.Merge(&values, t.defaults)
-		if err != nil {
-			return rendered, err
-		}
-	}
-
-	data := map[string]any{
-		"Values": values,
-	}
-
-	var err error
 	for _, tmplSpec := range t.config.Templates {
-		tmpl, err = tmpl.ParseFS(t.files, tmplSpec.Source)
+		content, err := fs.ReadFile(t.files, tmplSpec.Source)
 		if err != nil {
 			return rendered, err
 		}
 
-		var buf bytes.Buffer
-		err = tmpl.ExecuteTemplate(&buf, filepath.Base(tmplSpec.Source), data)
+		out, err := t.Render(string(content), values)
 		if err != nil {
 			return rendered, err
 		}
 
-		rendered[tmplSpec.Destination] = buf.Bytes()
+		rendered[tmplSpec.Destination] = out
 	}
 
 	// Second run to allow for values interpolation in values files
 	for path, content := range rendered {
-		tmpl := template.New("").Funcs(FuncMap())
-		tmpl, err := tmpl.Parse(string(content))
+		out, err := t.Render(string(content), values)
 		if err != nil {
 			return rendered, err
 		}
 
-		var buf bytes.Buffer
-		err = tmpl.Execute(&buf, data)
-		if err != nil {
-			return rendered, err
-		}
-
-		rendered[path] = buf.Bytes()
+		rendered[path] = out
 	}
 
 	return rendered, nil
