@@ -2,6 +2,7 @@ package templates
 
 import (
 	"bytes"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -14,7 +15,14 @@ import (
 const (
 	DefaultsFileName = "defaults.yaml"
 	configFileName   = "config.yaml"
+	fileHeaderFmt    = `
+###
+# Default file: %s
+###
+`
 )
+
+type Values map[string]any
 
 type Template struct {
 	Source      string `yaml:"src"`
@@ -24,27 +32,17 @@ type Template struct {
 
 type TemplatesConfig struct {
 	Templates []Template `yaml:"templates"`
+	Defaults  []string   `yaml:"defaults"`
 }
 
 type Templates struct {
-	config   TemplatesConfig
-	files    fs.FS
-	defaults map[string]any
+	config          *TemplatesConfig
+	files           fs.FS
+	defaultsContent []byte
+	defaults        Values
 }
 
-func New(config TemplatesConfig, files fs.FS) *Templates {
-	return &Templates{
-		config: config,
-		files:  files,
-	}
-}
-
-func NewFromPath(path string) (*Templates, error) {
-	t := Templates{}
-
-	dir := os.DirFS(path)
-	t.files = dir
-
+func ReadConfig(dir fs.FS) (*TemplatesConfig, error) {
 	content, err := fs.ReadFile(dir, configFileName)
 	if err != nil {
 		return nil, err
@@ -56,20 +54,32 @@ func NewFromPath(path string) (*Templates, error) {
 		return nil, err
 	}
 
-	t.config = conf
+	return &conf, nil
+}
 
-	content, err = fs.ReadFile(dir, DefaultsFileName)
-	if err == nil {
-		var defaults map[string]any
-		err = yaml.Unmarshal(content, &defaults)
-		if err != nil {
-			return nil, err
-		}
-
-		t.defaults = defaults
+func New(config *TemplatesConfig, files fs.FS) (*Templates, error) {
+	t := &Templates{
+		config: config,
+		files:  files,
 	}
 
-	return &t, nil
+	err := t.loadDefaults()
+	if err != nil {
+		return nil, err
+	}
+
+	return t, nil
+}
+
+func NewFromPath(path string) (*Templates, error) {
+	dir := os.DirFS(path)
+
+	conf, err := ReadConfig(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	return New(conf, dir)
 }
 
 func (t *Templates) RenderFromString(text string) (string, error) {
@@ -143,4 +153,47 @@ func (t *Templates) Render(values map[string]any) (map[string][]byte, error) {
 	}
 
 	return rendered, nil
+}
+
+func (t *Templates) loadDefaults() error {
+	defaultsContent, err := mergeDefaultsFiles(t.files, t.config.Defaults)
+	if err != nil {
+		return err
+	}
+
+	t.defaultsContent = defaultsContent
+
+	defaultsMap := make(map[string]any)
+
+	err = yaml.Unmarshal(defaultsContent, &defaultsMap)
+	if err != nil {
+		return err
+	}
+
+	t.defaults = defaultsMap
+
+	return nil
+}
+
+func mergeDefaultsFiles(dir fs.FS, files []string) ([]byte, error) {
+	var defaults bytes.Buffer
+
+	for _, defaultsFile := range files {
+		content, err := fs.ReadFile(dir, defaultsFile)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = defaults.WriteString(fmt.Sprintf(fileHeaderFmt, defaultsFile))
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = defaults.Write(content)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return defaults.Bytes(), nil
 }
