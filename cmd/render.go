@@ -34,7 +34,7 @@ func renderCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "render",
 		Args:         cobra.ExactArgs(1),
-		Short:        "A brief description of your command",
+		Short:        "Render templates",
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.installationPath = args[0]
@@ -46,7 +46,7 @@ func renderCmd() *cobra.Command {
 	// cmd.Flags().BoolVar(&opts.defaults, "defaults", true, "Use default values")
 	cmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "Print out rendered files")
 	cmd.Flags().BoolVar(&opts.watch, "watch", false, "Watch all values and config files")
-	cmd.Flags().StringSliceVar(&opts.values, "values", []string{}, "")
+	cmd.Flags().StringSliceVar(&opts.values, "values", []string{}, "Additional values files - relative to execution working directory")
 
 	return cmd
 }
@@ -166,7 +166,7 @@ func (opts *renderOpts) render() ([]string, error) {
 
 	if opts.dryRun {
 		for name, content := range out {
-			fmt.Printf(`File: %s\n---\n%s`, name, string(content))
+			fmt.Printf("File: %s\n---\n%s", name, string(content))
 		}
 	} else {
 		err = opts.writeOutput(out)

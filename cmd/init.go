@@ -29,7 +29,7 @@ func initCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&opts.templatesRepo, "templates", "", "Repository with templates")
+	cmd.Flags().StringVar(&opts.templatesRepo, "templates-repo", "", "Repository with templates")
 	cmd.Flags().StringVar(&opts.token, "token", "", "Token to use when cloning templates repo")
 
 	return cmd
