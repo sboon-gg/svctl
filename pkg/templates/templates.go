@@ -85,8 +85,8 @@ func NewFromPath(path string) (*Templates, error) {
 	return New(conf, dir)
 }
 
-func (t *Templates) template(tplContent string) (*template.Template, error) {
-	return template.New("").Funcs(FuncMap()).Parse(tplContent)
+func (t *Templates) template(name, tplContent string) (*template.Template, error) {
+	return template.New(name).Funcs(FuncMap()).Parse(tplContent)
 }
 
 func (t *Templates) prepData(values Values) (Data, error) {
@@ -102,8 +102,8 @@ func (t *Templates) prepData(values Values) (Data, error) {
 	return data, nil
 }
 
-func (t *Templates) Render(template string, values Values) ([]byte, error) {
-	tmpl, err := t.template(template)
+func (t *Templates) Render(name, template string, values Values) ([]byte, error) {
+	tmpl, err := t.template(name, template)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (t *Templates) RenderAll(values map[string]any) (map[string][]byte, error) 
 			return rendered, err
 		}
 
-		out, err := t.Render(string(content), values)
+		out, err := t.Render(tmplSpec.Source, string(content), values)
 		if err != nil {
 			return rendered, err
 		}
@@ -141,7 +141,7 @@ func (t *Templates) RenderAll(values map[string]any) (map[string][]byte, error) 
 
 	// Second run to allow for values interpolation in values files
 	for path, content := range rendered {
-		out, err := t.Render(string(content), values)
+		out, err := t.Render(path, string(content), values)
 		if err != nil {
 			return rendered, err
 		}

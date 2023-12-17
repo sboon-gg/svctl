@@ -202,7 +202,7 @@ func mergeValuesFile(t *templates.Templates, allValues *map[string]any, file str
 		return err
 	}
 
-	out, err := t.Render(string(content), *allValues)
+	out, err := t.Render(file, string(content), *allValues)
 	if err != nil {
 		return err
 	}
