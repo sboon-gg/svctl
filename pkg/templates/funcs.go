@@ -4,14 +4,24 @@ import (
 	"fmt"
 	"os"
 	"text/template"
+
+	"github.com/Masterminds/sprig/v3"
 )
 
 func FuncMap() template.FuncMap {
-	return template.FuncMap{
+	f := sprig.TxtFuncMap()
+
+	extra := template.FuncMap{
 		"pyBool": pyBool,
 		"quote":  quote,
 		"env":    env,
 	}
+
+	for k, v := range extra {
+		f[k] = v
+	}
+
+	return f
 }
 
 func pyBool(v any) (string, error) {
