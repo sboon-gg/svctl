@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	DefaultsFileName = ".defaults.yaml"
-	configFileName   = ".config.yaml"
+	DefaultsFileName = "defaults.yaml"
+	configFileName   = "config.yaml"
 )
 
 type Template struct {
