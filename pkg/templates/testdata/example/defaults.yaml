@@ -1,0 +1,4 @@
+boolTest: true
+test: test-string
+quoted: "should-be-quoted"
+negativeBool: false

@@ -2,7 +2,6 @@ package templates
 
 import (
 	"bytes"
-	"fmt"
 	"io/fs"
 	"os"
 	"text/template"
@@ -14,11 +13,6 @@ import (
 const (
 	DefaultsFileName = "defaults.yaml"
 	configFileName   = "config.yaml"
-	fileHeaderFmt    = `
-###
-# Default file: %s
-###
-`
 )
 
 type Values map[string]any
@@ -35,7 +29,6 @@ type Template struct {
 
 type TemplatesConfig struct {
 	Templates []Template `yaml:"templates"`
-	Defaults  []string   `yaml:"defaults"`
 }
 
 type Templates struct {
@@ -91,10 +84,15 @@ func (t *Templates) template(name, tplContent string) (*template.Template, error
 
 func (t *Templates) prepData(values Values) (Data, error) {
 	data := Data{
-		Values: values,
+		Values: Values{},
 	}
 
-	err := mergo.Merge(&values, t.defaults)
+	err := mergo.Map(&data.Values, t.defaults)
+	if err != nil {
+		return data, err
+	}
+
+	err = mergo.Map(&data.Values, values, mergo.WithOverride)
 	if err != nil {
 		return data, err
 	}
@@ -153,16 +151,15 @@ func (t *Templates) RenderAll(values map[string]any) (map[string][]byte, error) 
 }
 
 func (t *Templates) loadDefaults() error {
-	defaultsContent, err := mergeDefaultsFiles(t.files, t.config.Defaults)
+	var err error
+	t.defaultsContent, err = fs.ReadFile(t.files, DefaultsFileName)
 	if err != nil {
 		return err
 	}
 
-	t.defaultsContent = defaultsContent
-
 	defaultsMap := make(map[string]any)
 
-	err = yaml.Unmarshal(defaultsContent, &defaultsMap)
+	err = yaml.Unmarshal(t.defaultsContent, &defaultsMap)
 	if err != nil {
 		return err
 	}
@@ -170,27 +167,4 @@ func (t *Templates) loadDefaults() error {
 	t.defaults = defaultsMap
 
 	return nil
-}
-
-func mergeDefaultsFiles(dir fs.FS, files []string) ([]byte, error) {
-	var defaults bytes.Buffer
-
-	for _, defaultsFile := range files {
-		content, err := fs.ReadFile(dir, defaultsFile)
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = defaults.WriteString(fmt.Sprintf(fileHeaderFmt, defaultsFile))
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = defaults.Write(content)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return defaults.Bytes(), nil
 }

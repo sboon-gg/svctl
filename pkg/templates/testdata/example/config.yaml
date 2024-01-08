@@ -1,0 +1,6 @@
+templates:
+  - src: "file.yaml.tpl"
+    dest: "file.yaml"
+
+defaults:
+  - "defaults.yaml"
