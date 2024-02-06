@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+option go_package = "github.com/sboon-gg/svctl/svctl";
+
+package svctl;
+
+service Servers {
+  rpc Start(ServerOpts) returns (ServerInfo) {}
+  rpc Stop(ServerOpts) returns (ServerInfo) {}
+  rpc Register(ServerOpts) returns (ServerInfo) {}
+}
+
+message ServerOpts {
+  string path = 1;
+}
+
+enum Status {
+  REGISTERED = 0;
+  STARTED = 1;
+  STOPPED = 2;
+}
+
+message ServerInfo {
+  string path = 1;
+  Status status = 2;
+}
