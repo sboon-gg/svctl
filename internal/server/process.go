@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"syscall"
-	"time"
 )
 
 const (
@@ -37,47 +37,32 @@ func startProcess(path string) (*os.Process, error) {
 	})
 }
 
-func healthCheck(process *os.Process) error {
-	if process == nil {
-		return nil
-	}
-
-	return process.Signal(syscall.Signal(0))
+func isHealthy(process *os.Process) bool {
+	err := process.Signal(syscall.Signal(0))
+	return err == nil
 }
 
 func stopProcess(process *os.Process) error {
-	if process == nil {
+	if process == nil || process.Pid == -1 || !isHealthy(process) {
 		return nil
 	}
 
-	if process.Pid == -1 {
-		return nil
-	}
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
 
-	calls := []syscall.Signal{
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGKILL,
-	}
+		_, _ = process.Wait()
+	}(wg)
 
-	for _, call := range calls {
-		if err := healthCheck(process); err != nil {
-			return nil
-		}
-
-		// send signal to process
-		if err := process.Signal(call); err != nil {
+	if isHealthy(process) {
+		err := process.Kill()
+		if err != nil {
 			return err
 		}
-
-		// give process time to shutdown
-		time.Sleep(500 * time.Millisecond)
 	}
 
-	err := process.Kill()
-	if err != nil {
-		return err
-	}
+	wg.Wait()
 
 	return process.Release()
 }
