@@ -1,14 +1,12 @@
 package server
 
 import (
-	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/pkg/errors"
+	"github.com/sboon-gg/svctl/internal/server/prbf2"
 	"github.com/sboon-gg/svctl/pkg/templates"
 )
 
@@ -21,17 +19,13 @@ const (
 	MaplistFile = "maplist.yaml"
 
 	CacheFile = ".cache.yaml"
-
-	maxRestartRetries = 10
 )
 
 type Server struct {
 	log *slog.Logger
 
-	Path    string
-	process *os.Process
-
-	restartCancel context.CancelFunc
+	Path string
+	proc *prbf2.PRBF2
 }
 
 func initLog(svPath string) *slog.Logger {
@@ -49,23 +43,20 @@ func Open(serverPath string) (*Server, error) {
 		Path: serverPath,
 	}
 
+	s.proc = prbf2.New(serverPath, s.setProcess)
+
 	cache, err := s.Cache()
 	if err != nil {
 		return nil, err
 	}
 
 	if cache.PID != -1 {
-		s.process, err = os.FindProcess(cache.PID)
-		if err != nil || !isHealthy(s.process) {
-			err = s.unsetProcess()
+		proc, err := os.FindProcess(cache.PID)
+		if err == nil {
+			err = s.proc.Adopt(proc)
 			if err != nil {
 				return nil, err
 			}
-		}
-
-		if s.process != nil {
-			// TODO: verify that no one else is managing the process
-			s.setupRestart()
 		}
 	}
 
@@ -117,156 +108,33 @@ func Initialize(serverPath string, opts *Opts) (*Server, error) {
 func (s *Server) Start() error {
 	s.log.Info("Starting server")
 
-	if s.process != nil {
-		return nil
-	}
-
-	process, err := startProcess(s.Path)
-	if err != nil {
-		return err
-	}
-
-	err = s.setProcess(process)
-	if err != nil {
-		return err
-	}
-
-	s.setupRestart()
-
-	return nil
+	return s.proc.Start()
 }
 
 func (s *Server) Stop() error {
 	s.log.Info("Stopping server")
 
-	if s.process == nil {
-		return nil
-	}
-
-	s.restartCancel()
-
-	if err := stopProcess(s.process); err != nil {
-		return err
-	}
-
-	return s.unsetProcess()
+	return s.proc.Stop()
 }
 
-func (s *Server) setProcess(proc *os.Process) error {
+func (s *Server) Restart() error {
+	s.log.Info("Restarting server")
+
+	return s.proc.Restart()
+}
+
+func (s *Server) setProcess(_ prbf2.State) {
 	s.log.Info("Setting process")
 
-	s.process = proc
+	pid := -1
+	if s.proc != nil {
+		pid = s.proc.Pid()
+	}
 
-	s.log = initLog(s.Path).With(slog.Int("pid", proc.Pid))
+	s.log = initLog(s.Path).With(slog.Int("pid", pid))
 
-	return s.storePID(proc.Pid)
-}
-
-func (s *Server) unsetProcess() error {
-	s.log.Info("Unsetting process")
-
-	s.process = nil
-
-	s.log = initLog(s.Path).With(slog.Int("pid", -1))
-
-	return s.storePID(-1)
-}
-
-func (s *Server) restart() error {
-	err := stopProcess(s.process)
+	err := s.storePID(pid)
 	if err != nil {
-		return errors.Wrap(err, "Failed to gracefully shutdown process before restart")
-	}
-
-	err = s.unsetProcess()
-	if err != nil {
-		return err
-	}
-
-	proc, err := startProcess(s.Path)
-	if err != nil {
-		return errors.Wrap(err, "Failed to start new process")
-	}
-
-	return s.setProcess(proc)
-}
-
-func (s *Server) setupRestart() {
-	restartCtx, restartCancel := context.WithCancel(context.Background())
-	s.restartCancel = restartCancel
-
-	r := &restarter{
-		s:             s,
-		maxRetries:    maxRestartRetries,
-		restartCtx:    restartCtx,
-		restartCancel: restartCancel,
-	}
-
-	go r.Watch()
-}
-
-type restarter struct {
-	s *Server
-
-	retries    int
-	maxRetries int
-
-	restartCtx    context.Context
-	restartCancel context.CancelFunc
-}
-
-func (r *restarter) Watch() {
-	go r.attemptToWait()
-
-	for {
-		select {
-		case <-r.restartCtx.Done():
-			return
-		default:
-			if isHealthy(r.s.process) {
-				r.retries = 0
-				time.Sleep(500 * time.Millisecond)
-				continue
-			}
-
-			err := r.attempRestart()
-			if err != nil {
-				r.restartCancel()
-				r.s.log.Error(err.Error())
-				return
-			}
-
-			go r.attemptToWait()
-		}
-	}
-}
-
-func (r *restarter) attempRestart() error {
-	if r.retries >= r.maxRetries {
-		return fmt.Errorf("Failed to restart process after %d retries, giving up", r.maxRetries)
-	}
-
-	r.retries++
-
-	err := r.s.restart()
-	if err != nil {
-		r.s.log.Error(fmt.Sprintf("Failed to restart process: %s", err))
-		return r.attempRestart()
-	}
-
-	r.retries = 0
-
-	return nil
-}
-
-// attemptToWait waits for the process to exit and logs the state
-// it might be unable to wait if it didn't start the process (daemon recover)
-// or the process might be already dead
-// release the process so the health check in Watch() can detect it
-func (r *restarter) attemptToWait() {
-	state, err := r.s.process.Wait()
-	if err == nil {
-		r.s.log.Info(fmt.Sprintf("Process exited with state: %s", state.String()))
-		_ = r.s.process.Release()
+		s.log.Error("Failed to store PID", slog.String("err", err.Error()))
 	}
 }
