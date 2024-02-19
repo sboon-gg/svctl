@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/sboon-gg/svctl/internal/server/prbf2"
+	"github.com/sboon-gg/svctl/internal/server/fsm"
 	"github.com/sboon-gg/svctl/pkg/templates"
 )
 
@@ -25,7 +25,7 @@ type Server struct {
 	log *slog.Logger
 
 	Path string
-	proc *prbf2.PRBF2
+	fsm  *fsm.FSM
 }
 
 func initLog(svPath string) *slog.Logger {
@@ -43,7 +43,7 @@ func Open(serverPath string) (*Server, error) {
 		Path: serverPath,
 	}
 
-	s.proc = prbf2.New(serverPath, s.setProcess)
+	s.fsm = fsm.New(serverPath, s.setProcess)
 
 	cache, err := s.Cache()
 	if err != nil {
@@ -53,7 +53,7 @@ func Open(serverPath string) (*Server, error) {
 	if cache.PID != -1 {
 		proc, err := os.FindProcess(cache.PID)
 		if err == nil {
-			err = s.proc.Adopt(proc)
+			err = s.fsm.Adopt(proc)
 			if err != nil {
 				return nil, err
 			}
@@ -108,27 +108,27 @@ func Initialize(serverPath string, opts *Opts) (*Server, error) {
 func (s *Server) Start() error {
 	s.log.Info("Starting server")
 
-	return s.proc.Start()
+	return s.fsm.Start()
 }
 
 func (s *Server) Stop() error {
 	s.log.Info("Stopping server")
 
-	return s.proc.Stop()
+	return s.fsm.Stop()
 }
 
 func (s *Server) Restart() error {
 	s.log.Info("Restarting server")
 
-	return s.proc.Restart()
+	return s.fsm.Restart()
 }
 
-func (s *Server) setProcess(_ prbf2.State) {
+func (s *Server) setProcess(_ fsm.StateT) {
 	s.log.Info("Setting process")
 
 	pid := -1
-	if s.proc != nil {
-		pid = s.proc.Pid()
+	if s.fsm != nil {
+		pid = s.fsm.Pid()
 	}
 
 	s.log = initLog(s.Path).With(slog.Int("pid", pid))
