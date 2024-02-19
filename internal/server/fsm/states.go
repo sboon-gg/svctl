@@ -91,6 +91,7 @@ func (s *StateRestarting) Enter(fsm *FSM) {
 		err := fsm.restartCtx.inc()
 		if err != nil {
 			fsm.handleError(err)
+			fsm.restartCtx.reset()
 			return
 		}
 	} else {

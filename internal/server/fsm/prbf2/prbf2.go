@@ -96,7 +96,7 @@ func (p *PRBF2) watchProcess() error {
 	p.watchCancel = watchCancel
 
 	go func() {
-		watchCh := watchProcess(p.proc, watchCtx)
+		watchCh := watchProcess(watchCtx, p.proc)
 		for {
 			select {
 			case <-watchCtx.Done():

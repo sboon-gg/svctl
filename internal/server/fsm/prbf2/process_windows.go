@@ -1,19 +1,18 @@
-//go:build linux
+//go:build windows
 
 package prbf2
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"path/filepath"
 	"syscall"
 	"time"
+
+	"golang.org/x/sys/windows"
 )
 
 const (
-	exe       = "prbf2_l64ded"
-	binaryDir = "bin/amd-64"
+	exe = "prbf2_w32ded.exe"
 )
 
 var args = []string{
@@ -24,21 +23,22 @@ var args = []string{
 }
 
 func startProcess(path string) (*os.Process, error) {
-	binDir := filepath.Join(path, binaryDir)
-	fullExe := filepath.Join(binDir, exe)
+	allArgs := append([]string{exe}, args...)
 
-	env := os.Environ()
-	env = append(env, fmt.Sprintf("LD_LIBRARY_PATH=%s", binDir))
-
-	allArgs := append([]string{fullExe}, args...)
-
-	return os.StartProcess(fullExe, allArgs, &os.ProcAttr{
+	proc, err := os.StartProcess(exe, allArgs, &os.ProcAttr{
 		Dir: path,
-		Env: env,
-		Sys: &syscall.SysProcAttr{
-			Setpgid: true,
+		Files: []*os.File{
+			os.Stdin,
+			os.Stdout,
+			os.Stderr,
 		},
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return proc, nil
 }
 
 func stopProcess(process *os.Process) error {
@@ -53,6 +53,10 @@ func stopProcess(process *os.Process) error {
 
 func watchProcess(ctx context.Context, p *os.Process) <-chan struct{} {
 	ch := make(chan struct{}, 1)
+
+	setHighPriority(p.Pid)
+
+	startErrorKiller(ctx, p)
 
 	go func() {
 		_, err := p.Wait()
@@ -83,4 +87,20 @@ func watchProcess(ctx context.Context, p *os.Process) <-chan struct{} {
 func isProcessHealthy(process *os.Process) bool {
 	err := process.Signal(syscall.Signal(0))
 	return err == nil
+}
+
+const PROCESS_ALL_ACCESS = windows.STANDARD_RIGHTS_REQUIRED | windows.SYNCHRONIZE | 0xffff
+
+func setHighPriority(pid int) error {
+	handle, err := windows.OpenProcess(PROCESS_ALL_ACCESS, false, uint32(pid))
+	if err != nil {
+		return err
+	}
+
+	err = windows.SetPriorityClass(handle, windows.HIGH_PRIORITY_CLASS)
+	if err != nil {
+		return err
+	}
+
+	return windows.CloseHandle(handle)
 }
