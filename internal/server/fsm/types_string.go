@@ -9,19 +9,14 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[StateTStopped-0]
-	_ = x[StateTStopping-1]
-	_ = x[StateTStarting-2]
-	_ = x[StateTAdopting-3]
-	_ = x[StateTRunning-4]
-	_ = x[StateTRestarting-5]
-	_ = x[StateTExited-6]
-	_ = x[StateTErrored-7]
-	_ = x[StateTCleaningError-8]
+	_ = x[StateTRunning-1]
+	_ = x[StateTRestarting-2]
+	_ = x[StateTErrored-3]
 }
 
-const _StateT_name = "StoppedStoppingStartingAdoptingRunningRestartingExitedErroredCleaningError"
+const _StateT_name = "StoppedRunningRestartingErrored"
 
-var _StateT_index = [...]uint8{0, 7, 15, 23, 31, 38, 48, 54, 61, 74}
+var _StateT_index = [...]uint8{0, 7, 14, 24, 31}
 
 func (i StateT) String() string {
 	if i < 0 || i >= StateT(len(_StateT_index)-1) {

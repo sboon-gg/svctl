@@ -24,7 +24,6 @@ var allowedActions = map[Action][]StateT{
 	},
 	ActionStop: {
 		StateTRunning,
-		StateTErrored,
 	},
 	ActionRestart: {
 		StateTRunning,
@@ -35,6 +34,8 @@ var allowedActions = map[Action][]StateT{
 }
 
 type FSM struct {
+	states map[StateT]State
+
 	currentState State
 	desiredState State
 
@@ -49,15 +50,26 @@ type FSM struct {
 }
 
 func New(path string, onStateChange func(StateT)) *FSM {
+	states := map[StateT]State{
+		StateTStopped:    &StateStopped{},
+		StateTRunning:    &StateRunning{},
+		StateTRestarting: &StateRestarting{},
+	}
+
 	return &FSM{
+		states:        states,
 		ctrl:          prbf2.New(path),
-		currentState:  &StateStopped{},
-		desiredState:  &StateStopped{},
+		currentState:  states[StateTStopped],
+		desiredState:  states[StateTStopped],
 		onStateChange: onStateChange,
 	}
 }
 
 func (fsm *FSM) loop() {
+	if fsm.cancel != nil {
+		fsm.cancel()
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	fsm.cancel = cancel
 
@@ -77,11 +89,11 @@ func (fsm *FSM) Pid() int {
 
 func (fsm *FSM) Start() error {
 	go fsm.loop()
-	return fsm.action(ActionStart, &StateRunning{})
+	return fsm.action(ActionStart, StateTRunning)
 }
 
 func (fsm *FSM) Stop() error {
-	err := fsm.action(ActionStop, &StateStopped{})
+	err := fsm.action(ActionStop, StateTStopped)
 	if err != nil {
 		return err
 	}
@@ -93,11 +105,10 @@ func (fsm *FSM) Stop() error {
 }
 
 func (fsm *FSM) Restart() error {
-	return fsm.action(ActionRestart, &StateRestarting{})
+	return fsm.action(ActionRestart, StateTRestarting)
 }
 
 func (fsm *FSM) Adopt(proc *os.Process) error {
-
 	if !fsm.isActionAllowed(ActionAdopt) {
 		return ErrActionNotAllowed
 	}
@@ -109,7 +120,7 @@ func (fsm *FSM) Adopt(proc *os.Process) error {
 
 	go fsm.loop()
 
-	fsm.ChangeState(&StateRunning{})
+	fsm.ChangeState(StateTRunning)
 	return nil
 }
 
@@ -128,7 +139,7 @@ func (fsm *FSM) isActionAllowed(action Action) bool {
 	return false
 }
 
-func (fsm *FSM) action(a Action, s State) error {
+func (fsm *FSM) action(a Action, s StateT) error {
 	if !fsm.isActionAllowed(a) {
 		return ErrActionNotAllowed
 	}
@@ -137,12 +148,15 @@ func (fsm *FSM) action(a Action, s State) error {
 	return nil
 }
 
-func (fsm *FSM) ChangeState(state State) {
-	fsm.desiredState = state
+func (fsm *FSM) ChangeState(state StateT) {
+	if desiredState, ok := fsm.states[state]; ok {
+		fsm.desiredState = desiredState
+	}
 }
 
 func (fsm *FSM) Transition() {
 	if fsm.desiredState != fsm.currentState {
+		log.Printf("Transitioning from %s to %s", fsm.currentState.Type(), fsm.desiredState.Type())
 		if fsm.currentState != nil {
 			fsm.currentState.Exit()
 		}
@@ -155,5 +169,5 @@ func (fsm *FSM) Transition() {
 func (fsm *FSM) handleError(err error) {
 	fsm.err = err
 	log.Print(err.Error())
-	fsm.ChangeState(&StateStopped{})
+	fsm.ChangeState(StateTStopped)
 }

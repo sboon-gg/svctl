@@ -2,7 +2,6 @@ package fsm
 
 import (
 	"context"
-	"errors"
 	"time"
 )
 
@@ -16,16 +15,16 @@ type restartCtx struct {
 func (r *restartCtx) inc() error {
 	r.count++
 
-	if r.count >= maxRestarts {
-		return errors.New("max restarts reached")
-	}
-
 	if r.resetCancel != nil {
 		r.resetCancel()
 	}
 	go r.start()
 
 	return nil
+}
+
+func (r *restartCtx) max() bool {
+	return r.count >= maxRestarts
 }
 
 func (r *restartCtx) start() {

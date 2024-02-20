@@ -63,12 +63,11 @@ func (s *StateRunning) checkStatus(fsm *FSM) {
 	case prbf2.StatusRunning:
 		return
 	case prbf2.StatusExited:
-		fsm.ChangeState(&StateRestarting{
-			onError: true,
-		})
+		fsm.restartCtx.inc()
+		fsm.ChangeState(StateTRestarting)
 		s.cancel()
 	case prbf2.StatusStopped:
-		fsm.ChangeState(&StateStopped{})
+		fsm.ChangeState(StateTStopped)
 		s.cancel()
 	}
 }
@@ -79,7 +78,6 @@ func (s *StateRunning) Exit() {
 
 type StateRestarting struct {
 	StateEmpty
-	onError bool
 }
 
 func (s *StateRestarting) Type() StateT {
@@ -87,20 +85,20 @@ func (s *StateRestarting) Type() StateT {
 }
 
 func (s *StateRestarting) Enter(fsm *FSM) {
-	if s.onError {
-		err := fsm.restartCtx.inc()
-		if err != nil {
-			fsm.handleError(err)
-			fsm.restartCtx.reset()
-			return
-		}
-	} else {
+	if fsm.restartCtx.max() {
+		fsm.handleError(errors.New("max restarts reached"))
+		fsm.restartCtx.reset()
+		return
+	}
+
+	if fsm.restartCtx.count == 0 {
 		err := fsm.ctrl.Stop()
 		if err != nil {
 			fsm.handleError(err)
 			return
 		}
 	}
+	_ = fsm.ctrl.Stop()
 
-	fsm.ChangeState(&StateRunning{})
+	fsm.ChangeState(StateTRunning)
 }

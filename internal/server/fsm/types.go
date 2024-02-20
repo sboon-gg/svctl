@@ -5,15 +5,10 @@ package fsm
 type StateT int
 
 const (
-	StateTStopped       StateT = iota // Stopped
-	StateTStopping                    // Stopping
-	StateTStarting                    // Starting
-	StateTAdopting                    // Adopting
-	StateTRunning                     // Running
-	StateTRestarting                  // Restarting
-	StateTExited                      // Exited
-	StateTErrored                     // Errored
-	StateTCleaningError               // CleaningError
+	StateTStopped    StateT = iota // Stopped
+	StateTRunning                  // Running
+	StateTRestarting               // Restarting
+	StateTErrored                  // Errored
 )
 
 type Action int
