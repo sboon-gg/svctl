@@ -16,11 +16,7 @@ type MapInfo struct {
 	Layer string `json:"layer"`
 }
 
-var DefaultMapList []MapInfo
-
-func init() {
-	DefaultMapList = Parse(string(defaultSource))
-}
+var DefaultMapList = Parse(string(defaultSource))
 
 func Parse(maplistContent string) []MapInfo {
 	reader := strings.NewReader(maplistContent)
@@ -57,14 +53,12 @@ func Compose(maps []MapInfo) string {
 	return builder.String()
 }
 
-func Filter(allMaps, filters []MapInfo) []MapInfo {
+func Filter(allMaps []MapInfo, filter MapInfo) []MapInfo {
 	var maps []MapInfo
 
-	for _, filter := range filters {
-		for _, m := range allMaps {
-			if strings.Contains(m.Name, filter.Name) && strings.Contains(m.Mode, filter.Mode) && strings.Contains(m.Layer, filter.Layer) {
-				maps = append(maps, m)
-			}
+	for _, m := range allMaps {
+		if strings.Contains(m.Name, filter.Name) && strings.Contains(m.Mode, filter.Mode) && strings.Contains(m.Layer, filter.Layer) {
+			maps = append(maps, m)
 		}
 	}
 
