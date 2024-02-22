@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
 
@@ -115,49 +113,21 @@ func (opts *renderOpts) render() ([]string, error) {
 		return files, errors.New("Script has not been initialized, run `init` first.")
 	}
 
-	t, err := si.Templates()
-	if err != nil {
-		return files, err
-	}
-
-	allValues, err := si.Values()
-	if err != nil {
-		return files, err
-	}
-
-	out, err := t.Render(allValues)
+	outputs, err := si.Render()
 	if err != nil {
 		return files, err
 	}
 
 	if opts.dryRun {
-		for name, content := range out {
-			fmt.Printf("File: %s\n---\n%s", name, string(content))
+		for _, out := range outputs {
+			fmt.Printf("File: %s\n---\n%s", out.Destination, string(out.Content))
 		}
 	} else {
-		err = opts.writeOutput(out)
+		err = si.WriteTemplatesOutput(outputs)
 		if err != nil {
 			return files, err
 		}
 	}
 
 	return files, nil
-}
-
-func (opts *renderOpts) writeOutput(out map[string][]byte) error {
-	for name, content := range out {
-		path := filepath.Join(opts.path, name)
-
-		err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
-		if err != nil {
-			return err
-		}
-
-		err = os.WriteFile(path, content, 0755)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

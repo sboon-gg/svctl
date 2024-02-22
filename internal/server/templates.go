@@ -14,8 +14,18 @@ import (
 	"github.com/sboon-gg/svctl/pkg/templates"
 )
 
-func (s *Server) Templates() (*templates.Renderer, error) {
-	return templates.NewFromPath(s.dotPath(TemplatesDir))
+func (s *Server) Render() ([]templates.RenderOutput, error) {
+	renderer, err := templates.NewFromPath(s.dotPath(TemplatesDir))
+	if err != nil {
+		return nil, err
+	}
+
+	values, err := s.Values()
+	if err != nil {
+		return nil, err
+	}
+
+	return renderer.Render(values)
 }
 
 func (s *Server) Values() (templates.Values, error) {
@@ -31,6 +41,24 @@ func (s *Server) Values() (templates.Values, error) {
 	}
 
 	return values, nil
+}
+
+func (s *Server) WriteTemplatesOutput(outputs []templates.RenderOutput) error {
+	for _, out := range outputs {
+		path := filepath.Join(s.Path, out.Destination)
+
+		err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
+		if err != nil {
+			return err
+		}
+
+		err = os.WriteFile(path, out.Content, 0755)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func cloneTemplates(path, repoURL, token string) error {
