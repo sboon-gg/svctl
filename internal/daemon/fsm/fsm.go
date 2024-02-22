@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/sboon-gg/svctl/internal/server/fsm/prbf2"
+	"github.com/sboon-gg/svctl/internal/daemon/fsm/prbf2"
 )
 
 var ErrActionNotAllowed = errors.New("action not allowed")
@@ -39,7 +39,7 @@ type FSM struct {
 	currentState State
 	desiredState State
 
-	ctrl *prbf2.PRBF2
+	ctrl *prbf2.Process
 
 	restartCtx restartCtx
 	err        error

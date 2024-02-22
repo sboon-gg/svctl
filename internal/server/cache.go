@@ -46,7 +46,7 @@ func (s *Server) WriteCache(cache *Cache) error {
 	return os.WriteFile(s.dotPath(CacheFile), content, 0644)
 }
 
-func (s *Server) storePID(pid int) error {
+func (s *Server) StorePID(pid int) error {
 	cache, err := s.Cache()
 	if err != nil {
 		return err

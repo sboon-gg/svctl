@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/sboon-gg/svctl/internal/server"
 )
 
 const (
@@ -15,7 +13,7 @@ const (
 
 type Daemon struct {
 	cacheDir string
-	Servers  map[string]*server.Server
+	Servers  map[string]*RunningServer
 }
 
 func New() (*Daemon, error) {
@@ -29,7 +27,7 @@ func New() (*Daemon, error) {
 	err = os.MkdirAll(svctlCacheDir, 0755)
 
 	return &Daemon{
-		Servers:  make(map[string]*server.Server),
+		Servers:  make(map[string]*RunningServer),
 		cacheDir: svctlCacheDir,
 	}, nil
 }
@@ -46,7 +44,7 @@ func Recover() (*Daemon, error) {
 	}
 
 	for _, svPath := range state.Servers {
-		s, err := server.Open(svPath)
+		s, err := OpenServer(svPath)
 		if err != nil {
 			return nil, err
 		}
@@ -62,7 +60,7 @@ func (s *Daemon) Register(path string) error {
 		return fmt.Errorf("server %q already exists", path)
 	}
 
-	sv, err := server.Open(path)
+	sv, err := OpenServer(path)
 	if err != nil {
 		return err
 	}
@@ -96,7 +94,7 @@ func (s *Daemon) Stop(path string) error {
 	return srv.Stop()
 }
 
-func (d *Daemon) findServer(path string) (*server.Server, error) {
+func (d *Daemon) findServer(path string) (*RunningServer, error) {
 	s, ok := d.Servers[path]
 	if !ok {
 		return nil, fmt.Errorf("server %q not found", path)

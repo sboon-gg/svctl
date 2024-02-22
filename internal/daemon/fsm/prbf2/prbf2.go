@@ -17,7 +17,7 @@ const (
 var ErrAlreadyRunning = errors.New("process already running")
 var ErrNotRunning = errors.New("process not running")
 
-type PRBF2 struct {
+type Process struct {
 	path string
 
 	proc   *os.Process
@@ -26,17 +26,17 @@ type PRBF2 struct {
 	watchCancel context.CancelFunc
 }
 
-func New(path string) *PRBF2 {
-	return &PRBF2{
+func New(path string) *Process {
+	return &Process{
 		path: path,
 	}
 }
 
-func (p *PRBF2) Status() Status {
+func (p *Process) Status() Status {
 	return p.status
 }
 
-func (p *PRBF2) Adopt(proc *os.Process) error {
+func (p *Process) Adopt(proc *os.Process) error {
 	if p.proc != nil {
 		return ErrAlreadyRunning
 	}
@@ -47,7 +47,7 @@ func (p *PRBF2) Adopt(proc *os.Process) error {
 	return p.watchProcess()
 }
 
-func (p *PRBF2) Pid() int {
+func (p *Process) Pid() int {
 	if p.proc == nil {
 		return -1
 	}
@@ -55,7 +55,7 @@ func (p *PRBF2) Pid() int {
 	return p.proc.Pid
 }
 
-func (p *PRBF2) Start() error {
+func (p *Process) Start() error {
 	if p.proc != nil {
 		return ErrAlreadyRunning
 	}
@@ -71,7 +71,7 @@ func (p *PRBF2) Start() error {
 	return p.watchProcess()
 }
 
-func (p *PRBF2) Stop() error {
+func (p *Process) Stop() error {
 	if p.proc == nil {
 		return ErrNotRunning
 	}
@@ -87,7 +87,7 @@ func (p *PRBF2) Stop() error {
 	return nil
 }
 
-func (p *PRBF2) watchProcess() error {
+func (p *Process) watchProcess() error {
 	if p.proc == nil {
 		return errors.New("no process to watch")
 	}

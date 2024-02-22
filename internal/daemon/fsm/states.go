@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/sboon-gg/svctl/internal/server/fsm/prbf2"
+	"github.com/sboon-gg/svctl/internal/daemon/fsm/prbf2"
 )
 
 type StateEmpty struct{}
