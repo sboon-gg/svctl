@@ -26,7 +26,7 @@ func OpenServer(svPath string) (*RunningServer, error) {
 		log:    initLog(svPath),
 	}
 
-	rs.fsm = fsm.New(svPath, rs.setProcess)
+	rs.fsm = fsm.New(svPath, rs.setProcess, rs.fullRender)
 
 	cache, err := s.Cache()
 	if err != nil {
@@ -47,6 +47,13 @@ func OpenServer(svPath string) (*RunningServer, error) {
 }
 
 func (rs *RunningServer) Start() error {
+	rs.log.Info("Rendering templates")
+
+	err := rs.fullRender()
+	if err != nil {
+		return err
+	}
+
 	rs.log.Info("Starting server")
 
 	return rs.fsm.Start()
@@ -64,8 +71,16 @@ func (rs *RunningServer) Restart() error {
 	return rs.fsm.Restart()
 }
 
-func (rs *RunningServer) setProcess(_ fsm.StateT) {
-	rs.log.Info("Setting process")
+func (rs *RunningServer) setProcess(newState fsm.StateT) {
+	if newState == fsm.StateTRestarting {
+		rs.log.Info("Process restarting")
+	}
+
+	if newState == fsm.StateTStopped {
+		rs.log.Info("Process stopped")
+	}
+
+	rs.log.Debug("Setting PID in cache")
 
 	pid := -1
 	if rs.fsm != nil {
@@ -78,6 +93,15 @@ func (rs *RunningServer) setProcess(_ fsm.StateT) {
 	if err != nil {
 		rs.log.Error("Failed to store PID", slog.String("err", err.Error()))
 	}
+}
+
+func (rs *RunningServer) fullRender() error {
+	outputs, err := rs.Render()
+	if err != nil {
+		return err
+	}
+
+	return rs.WriteTemplatesOutput(outputs)
 }
 
 func initLog(svPath string) *slog.Logger {

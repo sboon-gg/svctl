@@ -3,7 +3,8 @@ package fsm
 import (
 	"context"
 	"errors"
-	"log"
+	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
@@ -45,11 +46,12 @@ type FSM struct {
 	err        error
 
 	onStateChange func(StateT)
+	render        func() error
 
 	cancel context.CancelFunc
 }
 
-func New(path string, onStateChange func(StateT)) *FSM {
+func New(path string, onStateChange func(StateT), render func() error) *FSM {
 	states := map[StateT]State{
 		StateTStopped:    &StateStopped{},
 		StateTRunning:    &StateRunning{},
@@ -62,6 +64,7 @@ func New(path string, onStateChange func(StateT)) *FSM {
 		currentState:  states[StateTStopped],
 		desiredState:  states[StateTStopped],
 		onStateChange: onStateChange,
+		render:        render,
 	}
 }
 
@@ -156,7 +159,7 @@ func (fsm *FSM) ChangeState(state StateT) {
 
 func (fsm *FSM) Transition() {
 	if fsm.desiredState != fsm.currentState {
-		log.Printf("Transitioning from %s to %s", fsm.currentState.Type(), fsm.desiredState.Type())
+		slog.Debug(fmt.Sprintf("Transitioning from %s to %s", fsm.currentState.Type(), fsm.desiredState.Type()), slog.Int("pid", fsm.Pid()))
 		if fsm.currentState != nil {
 			fsm.currentState.Exit()
 		}
@@ -168,6 +171,6 @@ func (fsm *FSM) Transition() {
 
 func (fsm *FSM) handleError(err error) {
 	fsm.err = err
-	log.Print(err.Error())
+	slog.Error(err.Error(), slog.Int("pid", fsm.Pid()))
 	fsm.ChangeState(StateTStopped)
 }

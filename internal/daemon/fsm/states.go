@@ -3,6 +3,8 @@ package fsm
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"time"
 
 	"github.com/sboon-gg/svctl/internal/daemon/fsm/prbf2"
 )
@@ -53,6 +55,21 @@ func (s *StateRunning) Enter(fsm *FSM) {
 				return
 			default:
 				s.checkStatus(fsm)
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				err := fsm.render()
+				if err != nil {
+					slog.Error("Failed to render templates: %s", err, slog.Int("pid", fsm.Pid()))
+				}
+				time.Sleep(1 * time.Minute)
 			}
 		}
 	}()

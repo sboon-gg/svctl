@@ -13,10 +13,9 @@ import (
 
 type renderOpts struct {
 	*serverOpts
-	defaults bool
-	dryRun   bool
-	watch    bool
-	values   []string
+	dryRun bool
+	watch  bool
+	values []string
 }
 
 func newRenderOpts() *renderOpts {
