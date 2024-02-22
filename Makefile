@@ -8,3 +8,6 @@ build-linux: generate
 
 build-win: generate
 	GOOS=windows CGO_ENABLED=0 go build -o bin/svctl.exe ./
+
+test:
+	go test -v ./...
