@@ -10,13 +10,19 @@ func TestTemplatesRender(t *testing.T) {
 	tests := []struct {
 		name     string
 		values   Values
-		expected map[string]string
+		expected []RenderOutput
 	}{
 		{
 			name:   "defaults",
 			values: Values{},
-			expected: map[string]string{
-				"file.yaml": "pyBool: True\nanother: test-string\nquoted: \"should-be-quoted\"\nnegativeBool: false\n",
+			expected: []RenderOutput{
+				{
+					Template: Template{
+						Source:      "file.yaml.tpl",
+						Destination: "file.yaml",
+					},
+					Content: []byte("pyBool: True\nanother: test-string\nquoted: \"should-be-quoted\"\nnegativeBool: false\n"),
+				},
 			},
 		},
 		{
@@ -26,8 +32,14 @@ func TestTemplatesRender(t *testing.T) {
 				"test":     "changed-string",
 				"quoted":   "but different",
 			},
-			expected: map[string]string{
-				"file.yaml": "pyBool: False\nanother: changed-string\nquoted: \"but different\"\nnegativeBool: false\n",
+			expected: []RenderOutput{
+				{
+					Template: Template{
+						Source:      "file.yaml.tpl",
+						Destination: "file.yaml",
+					},
+					Content: []byte("pyBool: False\nanother: changed-string\nquoted: \"but different\"\nnegativeBool: false\n"),
+				},
 			},
 		},
 	}
@@ -37,13 +49,13 @@ func TestTemplatesRender(t *testing.T) {
 			tmpl, err := NewFromPath("./testdata/example")
 			assert.NoError(t, err)
 
-			out, err := tmpl.RenderAll(test.values)
+			out, err := tmpl.Render(test.values)
 			assert.NoError(t, err)
 
 			assert.Len(t, out, len(test.expected))
 
-			for k, v := range test.expected {
-				assert.Equal(t, v, string(out[k]))
+			for i, v := range test.expected {
+				assert.Equal(t, v, out[i])
 			}
 		})
 	}

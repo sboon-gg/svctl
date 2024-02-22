@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	DefaultsFileName = "defaults.yaml"
-	configFileName   = "config.yaml"
+	configFileName = "config.yaml"
 )
 
 type Values map[string]any
@@ -27,24 +26,23 @@ type Template struct {
 	Reloadable  bool   `yaml:"reloadable"`
 }
 
-type TemplatesConfig struct {
+type RenderOutput struct {
+	Template
+	Content []byte
+}
+
+type Config struct {
 	Templates []Template `yaml:"templates"`
+	Defaults  []string   `yaml:"defaults"`
 }
 
-type Renderer struct {
-	config          *TemplatesConfig
-	files           fs.FS
-	defaultsContent []byte
-	defaults        Values
-}
-
-func ReadConfig(dir fs.FS) (*TemplatesConfig, error) {
+func ReadConfig(dir fs.FS) (*Config, error) {
 	content, err := fs.ReadFile(dir, configFileName)
 	if err != nil {
 		return nil, err
 	}
 
-	var conf TemplatesConfig
+	var conf Config
 	err = yaml.Unmarshal(content, &conf)
 	if err != nil {
 		return nil, err
@@ -53,18 +51,16 @@ func ReadConfig(dir fs.FS) (*TemplatesConfig, error) {
 	return &conf, nil
 }
 
-func New(config *TemplatesConfig, files fs.FS) (*Renderer, error) {
-	t := &Renderer{
+type Renderer struct {
+	config *Config
+	files  fs.FS
+}
+
+func New(config *Config, files fs.FS) *Renderer {
+	return &Renderer{
 		config: config,
 		files:  files,
 	}
-
-	err := t.loadDefaults()
-	if err != nil {
-		return nil, err
-	}
-
-	return t, nil
 }
 
 func NewFromPath(path string) (*Renderer, error) {
@@ -78,32 +74,37 @@ func NewFromFS(files fs.FS) (*Renderer, error) {
 		return nil, err
 	}
 
-	return New(conf, files)
+	return New(conf, files), nil
 }
 
 func (t *Renderer) template(name, tplContent string) (*template.Template, error) {
 	return template.New(name).Funcs(FuncMap()).Parse(tplContent)
 }
 
-func (t *Renderer) prepData(values Values) (Data, error) {
+func (t *Renderer) prepData(values Values) (*Data, error) {
 	data := Data{
 		Values: Values{},
 	}
 
-	err := mergo.Map(&data.Values, t.defaults)
+	defaults, err := t.Defaults()
 	if err != nil {
-		return data, err
+		return nil, err
+	}
+
+	err = mergo.Map(&data.Values, defaults)
+	if err != nil {
+		return nil, err
 	}
 
 	err = mergo.Map(&data.Values, values, mergo.WithOverride)
 	if err != nil {
-		return data, err
+		return nil, err
 	}
 
-	return data, nil
+	return &data, nil
 }
 
-func (t *Renderer) Render(name, template string, values Values) ([]byte, error) {
+func (t *Renderer) render(name, template string, values Values) ([]byte, error) {
 	tmpl, err := t.template(name, template)
 	if err != nil {
 		return nil, err
@@ -123,55 +124,65 @@ func (t *Renderer) Render(name, template string, values Values) ([]byte, error) 
 	return buf.Bytes(), nil
 }
 
-func (t *Renderer) RenderAll(values map[string]any) (map[string][]byte, error) {
-	rendered := make(map[string][]byte)
+func (t *Renderer) Render(values Values) ([]RenderOutput, error) {
+	rendered := make([]RenderOutput, len(t.config.Templates))
 
-	for _, tmplSpec := range t.config.Templates {
+	for i, tmplSpec := range t.config.Templates {
 		content, err := fs.ReadFile(t.files, tmplSpec.Source)
 		if err != nil {
-			return rendered, err
+			return nil, err
 		}
 
-		out, err := t.Render(tmplSpec.Source, string(content), values)
+		out, err := t.render(tmplSpec.Source, string(content), values)
 		if err != nil {
-			return rendered, err
+			return nil, err
 		}
 
-		rendered[tmplSpec.Destination] = out
+		rendered[i] = RenderOutput{
+			Template: tmplSpec,
+			Content:  out,
+		}
 	}
 
 	// Second run to allow for values interpolation in values files
-	for path, content := range rendered {
-		out, err := t.Render(path, string(content), values)
+	for i, out := range rendered {
+		content, err := t.render(out.Source, string(out.Content), values)
 		if err != nil {
 			return rendered, err
 		}
 
-		rendered[path] = out
+		rendered[i].Content = content
 	}
 
 	return rendered, nil
 }
 
-func (t *Renderer) loadDefaults() error {
-	var err error
-	t.defaultsContent, err = fs.ReadFile(t.files, DefaultsFileName)
-	if err != nil {
-		return err
+func (t *Renderer) DefaultsContent() ([]byte, error) {
+	var content bytes.Buffer
+	for _, path := range t.config.Defaults {
+		defaultsContent, err := fs.ReadFile(t.files, path)
+		if err != nil {
+			return nil, err
+		}
+
+		content.Write(defaultsContent)
+		content.WriteString("\n")
 	}
 
-	defaultsMap := make(map[string]any)
-
-	err = yaml.Unmarshal(t.defaultsContent, &defaultsMap)
-	if err != nil {
-		return err
-	}
-
-	t.defaults = defaultsMap
-
-	return nil
+	return content.Bytes(), nil
 }
 
-func (t *Renderer) DefaultsContent() []byte {
-	return t.defaultsContent
+func (t *Renderer) Defaults() (Values, error) {
+	defaultsContent, err := t.DefaultsContent()
+	if err != nil {
+		return nil, err
+	}
+
+	defaults := make(Values)
+	err = yaml.Unmarshal(defaultsContent, &defaults)
+	if err != nil {
+		return nil, err
+	}
+
+	return defaults, nil
 }

@@ -125,7 +125,7 @@ func (opts *renderOpts) render() ([]string, error) {
 		return files, err
 	}
 
-	out, err := t.RenderAll(allValues)
+	out, err := t.Render(allValues)
 	if err != nil {
 		return files, err
 	}

@@ -96,7 +96,12 @@ func Initialize(serverPath string, opts *Opts) (*Server, error) {
 			return nil, err
 		}
 
-		err = writeValues(svctlPath, t.DefaultsContent())
+		defaultsContent, err := t.DefaultsContent()
+		if err != nil {
+			return nil, err
+		}
+
+		err = writeValues(svctlPath, defaultsContent)
 		if err != nil {
 			return nil, err
 		}
