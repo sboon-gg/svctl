@@ -7,14 +7,12 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
-type Config struct {
-	IP   string `yaml:"ip"`
-	Port int    `yaml:"port"`
+type ValuesSource struct {
+	File string `yaml:"file"`
 }
 
-var DefaultConfig = Config{
-	IP:   "",
-	Port: 16567,
+type Config struct {
+	Values []ValuesSource `yaml:"values"`
 }
 
 func (s *Server) Config() (*Config, error) {
@@ -33,11 +31,11 @@ func (s *Server) Config() (*Config, error) {
 	return &config, nil
 }
 
-func writeDefaultConfig(path string) error {
-	content, err := yaml.Marshal(DefaultConfig)
+func writeConfig(path string, conf *Config) error {
+	content, err := yaml.Marshal(conf)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(filepath.Join(path, ConfigFile), content, 0755)
+	return os.WriteFile(filepath.Join(path, ConfigFile), content, 0644)
 }

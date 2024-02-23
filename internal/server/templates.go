@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"dario.cat/mergo"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -29,18 +30,34 @@ func (s *Server) Render() ([]templates.RenderOutput, error) {
 }
 
 func (s *Server) Values() (templates.Values, error) {
-	content, err := os.ReadFile(filepath.Join(s.dotPath(ValuesFile)))
+	var allValues templates.Values
+
+	config, err := s.Config()
 	if err != nil {
 		return nil, err
 	}
 
-	var values templates.Values
-	err = yaml.Unmarshal(content, &values)
-	if err != nil {
-		return nil, err
+	for _, source := range config.Values {
+		if source.File != "" {
+			content, err := os.ReadFile(filepath.Join(s.dotPath(defaultValuesFile)))
+			if err != nil {
+				return nil, err
+			}
+
+			var values templates.Values
+			err = yaml.Unmarshal(content, &values)
+			if err != nil {
+				return nil, err
+			}
+
+			err = mergo.Map(&allValues, values, mergo.WithOverride)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	return values, nil
+	return allValues, nil
 }
 
 func (s *Server) WriteTemplatesOutput(outputs []templates.RenderOutput) error {
@@ -52,7 +69,7 @@ func (s *Server) WriteTemplatesOutput(outputs []templates.RenderOutput) error {
 			return err
 		}
 
-		err = os.WriteFile(path, out.Content, 0755)
+		err = os.WriteFile(path, out.Content, 0644)
 		if err != nil {
 			return err
 		}
@@ -81,7 +98,7 @@ func cloneTemplates(path, repoURL, token string) error {
 func writeValues(path string, content []byte) error {
 	commented := commentOutWholeYamlFile(string(content))
 
-	return os.WriteFile(filepath.Join(path, ValuesFile), []byte(commented), 0755)
+	return os.WriteFile(filepath.Join(path, defaultValuesFile), []byte(commented), 0644)
 }
 
 func commentOutWholeYamlFile(content string) string {

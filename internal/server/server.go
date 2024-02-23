@@ -12,9 +12,8 @@ const (
 	SvctlDir     = ".svctl"
 	TemplatesDir = "templates"
 
-	ConfigFile  = "config.yaml"
-	ValuesFile  = "values.yaml"
-	MaplistFile = "maplist.yaml"
+	ConfigFile        = "config.yaml"
+	defaultValuesFile = "values.yaml"
 
 	CacheFile = ".cache.yaml"
 )
@@ -50,10 +49,7 @@ func Initialize(serverPath string, opts *Opts) (*Server, error) {
 		return nil, err
 	}
 
-	err = writeDefaultConfig(svctlPath)
-	if err != nil {
-		return nil, err
-	}
+	config := &Config{}
 
 	if opts.TemplatesRepo != "" {
 		templatesPath := filepath.Join(svctlPath, TemplatesDir)
@@ -76,6 +72,15 @@ func Initialize(serverPath string, opts *Opts) (*Server, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		config.Values = append(config.Values, ValuesSource{
+			File: defaultValuesFile,
+		})
+	}
+
+	err = writeConfig(svctlPath, config)
+	if err != nil {
+		return nil, err
 	}
 
 	return Open(serverPath)
