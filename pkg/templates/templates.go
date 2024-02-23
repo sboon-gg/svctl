@@ -7,6 +7,7 @@ import (
 	"text/template"
 
 	"dario.cat/mergo"
+	"github.com/sboon-gg/svctl/pkg/maplist"
 	"gopkg.in/yaml.v3"
 )
 
@@ -51,34 +52,49 @@ func ReadConfig(dir fs.FS) (*Config, error) {
 	return &conf, nil
 }
 
-type Renderer struct {
-	config *Config
-	files  fs.FS
-}
+type Option func(*Renderer)
 
-func New(config *Config, files fs.FS) *Renderer {
-	return &Renderer{
-		config: config,
-		files:  files,
+func WithMaps(maps []maplist.MapInfo) Option {
+	return func(r *Renderer) {
+		r.maps = maps
 	}
 }
 
-func NewFromPath(path string) (*Renderer, error) {
-	dir := os.DirFS(path)
-	return NewFromFS(dir)
+type Renderer struct {
+	config *Config
+	files  fs.FS
+	maps   []maplist.MapInfo
 }
 
-func NewFromFS(files fs.FS) (*Renderer, error) {
+func New(config *Config, files fs.FS, opts ...Option) *Renderer {
+	r := &Renderer{
+		config: config,
+		files:  files,
+	}
+
+	for _, opt := range opts {
+		opt(r)
+	}
+
+	return r
+}
+
+func NewFromPath(path string, opts ...Option) (*Renderer, error) {
+	dir := os.DirFS(path)
+	return NewFromFS(dir, opts...)
+}
+
+func NewFromFS(files fs.FS, opts ...Option) (*Renderer, error) {
 	conf, err := ReadConfig(files)
 	if err != nil {
 		return nil, err
 	}
 
-	return New(conf, files), nil
+	return New(conf, files, opts...), nil
 }
 
 func (t *Renderer) template(name, tplContent string) (*template.Template, error) {
-	return template.New(name).Funcs(FuncMap()).Parse(tplContent)
+	return template.New(name).Funcs(t.FuncMap()).Parse(tplContent)
 }
 
 func (t *Renderer) prepData(values Values) (*Data, error) {
@@ -104,13 +120,8 @@ func (t *Renderer) prepData(values Values) (*Data, error) {
 	return &data, nil
 }
 
-func (t *Renderer) render(name, template string, values Values) ([]byte, error) {
+func (t *Renderer) render(name, template string, data *Data) ([]byte, error) {
 	tmpl, err := t.template(name, template)
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := t.prepData(values)
 	if err != nil {
 		return nil, err
 	}
@@ -127,13 +138,18 @@ func (t *Renderer) render(name, template string, values Values) ([]byte, error) 
 func (t *Renderer) Render(values Values) ([]RenderOutput, error) {
 	rendered := make([]RenderOutput, len(t.config.Templates))
 
+	data, err := t.prepData(values)
+	if err != nil {
+		return nil, err
+	}
+
 	for i, tmplSpec := range t.config.Templates {
 		content, err := fs.ReadFile(t.files, tmplSpec.Source)
 		if err != nil {
 			return nil, err
 		}
 
-		out, err := t.render(tmplSpec.Source, string(content), values)
+		out, err := t.render(tmplSpec.Source, string(content), data)
 		if err != nil {
 			return nil, err
 		}
@@ -146,7 +162,7 @@ func (t *Renderer) Render(values Values) ([]RenderOutput, error) {
 
 	// Second run to allow for values interpolation in values files
 	for i, out := range rendered {
-		content, err := t.render(out.Source, string(out.Content), values)
+		content, err := t.render(out.Source, string(out.Content), data)
 		if err != nil {
 			return rendered, err
 		}

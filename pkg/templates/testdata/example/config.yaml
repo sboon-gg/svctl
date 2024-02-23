@@ -1,6 +1,8 @@
 templates:
   - src: "file.yaml.tpl"
     dest: "file.yaml"
+  - src: "maplist.con.tpl"
+    dest: "maplist.con"
 
 defaults:
   - "defaults.yaml"

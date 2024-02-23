@@ -2,3 +2,8 @@ boolTest: true
 test: test-string
 quoted: "should-be-quoted"
 negativeBool: false
+maps:
+  - name: kashan_desert
+    mode: gpm_cq
+  - name: sahel
+    layer: 64

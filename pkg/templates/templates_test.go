@@ -1,8 +1,10 @@
 package templates
 
 import (
+	"os"
 	"testing"
 
+	"github.com/sboon-gg/svctl/pkg/maplist"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,6 +13,7 @@ func TestTemplatesRender(t *testing.T) {
 		name     string
 		values   Values
 		expected []RenderOutput
+		env      map[string]string
 	}{
 		{
 			name:   "defaults",
@@ -21,7 +24,22 @@ func TestTemplatesRender(t *testing.T) {
 						Source:      "file.yaml.tpl",
 						Destination: "file.yaml",
 					},
-					Content: []byte("pyBool: True\nanother: test-string\nquoted: \"should-be-quoted\"\nnegativeBool: false\n"),
+					Content: []byte("pyBool: True\nanother: test-string\nquoted: \"should-be-quoted\"\nnegativeBool: false\nenvVal: \n"),
+				},
+				{
+					Template: Template{
+						Source:      "maplist.con.tpl",
+						Destination: "maplist.con",
+					},
+					Content: []byte(`mapList.append kashan_desert gpm_cq 16
+mapList.append kashan_desert gpm_cq 32
+mapList.append kashan_desert gpm_cq 64
+mapList.append kashan_desert gpm_cq 128
+mapList.append sahel gpm_cq 64
+mapList.append sahel gpm_insurgency 64
+mapList.append sahel gpm_skirmish 64
+mapList.append sahel gpm_coop 64
+`),
 				},
 			},
 		},
@@ -31,6 +49,14 @@ func TestTemplatesRender(t *testing.T) {
 				"boolTest": false,
 				"test":     "changed-string",
 				"quoted":   "but different",
+				"maps": []map[string]interface{}{
+					{
+						"name": "saaremaa",
+					},
+				},
+			},
+			env: map[string]string{
+				"ENV_VAL": "env-val",
 			},
 			expected: []RenderOutput{
 				{
@@ -38,7 +64,25 @@ func TestTemplatesRender(t *testing.T) {
 						Source:      "file.yaml.tpl",
 						Destination: "file.yaml",
 					},
-					Content: []byte("pyBool: False\nanother: changed-string\nquoted: \"but different\"\nnegativeBool: false\n"),
+					Content: []byte("pyBool: False\nanother: changed-string\nquoted: \"but different\"\nnegativeBool: false\nenvVal: env-val\n"),
+				},
+				{
+					Template: Template{
+						Source:      "maplist.con.tpl",
+						Destination: "maplist.con",
+					},
+					Content: []byte(`mapList.append saaremaa gpm_cq 16
+mapList.append saaremaa gpm_cq 32
+mapList.append saaremaa gpm_cq 64
+mapList.append saaremaa gpm_cq 128
+mapList.append saaremaa gpm_skirmish 16
+mapList.append saaremaa gpm_cnc 16
+mapList.append saaremaa gpm_cnc 32
+mapList.append saaremaa gpm_cnc 64
+mapList.append saaremaa gpm_cnc 128
+mapList.append saaremaa gpm_coop 32
+mapList.append saaremaa gpm_coop 64
+`),
 				},
 			},
 		},
@@ -46,7 +90,12 @@ func TestTemplatesRender(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			tmpl, err := NewFromPath("./testdata/example")
+			for k, v := range test.env {
+				os.Setenv(k, v)
+				defer os.Unsetenv(k)
+			}
+
+			tmpl, err := NewFromPath("./testdata/example", WithMaps(maplist.DefaultMapList))
 			assert.NoError(t, err)
 
 			out, err := tmpl.Render(test.values)
@@ -55,6 +104,7 @@ func TestTemplatesRender(t *testing.T) {
 			assert.Len(t, out, len(test.expected))
 
 			for i, v := range test.expected {
+				println(string(out[i].Content))
 				assert.Equal(t, v, out[i])
 			}
 		})
