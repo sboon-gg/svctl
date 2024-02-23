@@ -25,6 +25,9 @@ func New() (*Daemon, error) {
 	svctlCacheDir := filepath.Join(cacheDir, svctlDir)
 
 	err = os.MkdirAll(svctlCacheDir, 0755)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Daemon{
 		Servers:  make(map[string]*RunningServer),

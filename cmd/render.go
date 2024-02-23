@@ -86,7 +86,7 @@ func (opts *renderOpts) Run(cmd *cobra.Command) error {
 					log.Printf("Error rendering files: %s", err)
 				} else {
 					for _, file := range watchedFiles {
-						watcher.Add(file)
+						_ = watcher.Add(file)
 					}
 				}
 			}

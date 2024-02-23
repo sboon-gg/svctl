@@ -50,13 +50,8 @@ func (o *daemonOpts) Run(cmd *cobra.Command, args []string) error {
 	log.Printf("gRPC server listening at %v", lis.Addr())
 
 	go func() {
-		for {
-			select {
-			case <-cmd.Context().Done():
-				s.GracefulStop()
-				return
-			}
-		}
+		<-cmd.Context().Done()
+		s.GracefulStop()
 	}()
 
 	if err := s.Serve(lis); err != nil {

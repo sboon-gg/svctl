@@ -12,15 +12,13 @@ type restartCtx struct {
 	resetCancel context.CancelFunc
 }
 
-func (r *restartCtx) inc() error {
+func (r *restartCtx) inc() {
 	r.count++
 
 	if r.resetCancel != nil {
 		r.resetCancel()
 	}
 	go r.start()
-
-	return nil
 }
 
 func (r *restartCtx) max() bool {
