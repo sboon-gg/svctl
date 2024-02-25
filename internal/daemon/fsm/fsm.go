@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/sboon-gg/svctl/internal/daemon/fsm/prbf2"
+	"github.com/sboon-gg/svctl/pkg/prbf2"
 )
 
 var ErrActionNotAllowed = errors.New("action not allowed")

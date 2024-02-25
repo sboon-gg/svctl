@@ -33,10 +33,11 @@ func startProcess(path string) (*os.Process, error) {
 			os.Stderr,
 		},
 	})
-
 	if err != nil {
 		return nil, err
 	}
+
+	setHighPriority(proc.Pid)
 
 	return proc, nil
 }
@@ -53,8 +54,6 @@ func stopProcess(process *os.Process) error {
 
 func watchProcess(ctx context.Context, p *os.Process) <-chan struct{} {
 	ch := make(chan struct{}, 1)
-
-	setHighPriority(p.Pid)
 
 	startErrorKiller(ctx, p)
 

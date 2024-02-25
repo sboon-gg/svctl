@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/sboon-gg/svctl/internal/daemon/fsm/prbf2"
+	"github.com/sboon-gg/svctl/pkg/prbf2"
 )
 
 type StateEmpty struct{}
@@ -39,7 +39,13 @@ func (s *StateRunning) Type() StateT {
 }
 
 func (s *StateRunning) Enter(fsm *FSM) {
-	err := fsm.ctrl.Start()
+	err := fsm.render()
+	if err != nil {
+		fsm.handleError(err)
+		return
+	}
+
+	err = fsm.ctrl.Start()
 	if err != nil && !errors.Is(err, prbf2.ErrAlreadyRunning) {
 		fsm.handleError(err)
 		return
@@ -118,4 +124,7 @@ func (s *StateRestarting) Enter(fsm *FSM) {
 	_ = fsm.ctrl.Stop()
 
 	fsm.ChangeState(StateTRunning)
+}
+
+type StateUpdating struct {
 }
