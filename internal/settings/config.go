@@ -1,4 +1,4 @@
-package server
+package settings
 
 import (
 	"os"
@@ -15,10 +15,10 @@ type Config struct {
 	Values []ValuesSource `yaml:"values"`
 }
 
-func (s *Server) Config() (*Config, error) {
+func (s *Settings) Config() (*Config, error) {
 	var config Config
 
-	content, err := os.ReadFile(s.dotPath(ConfigFile))
+	content, err := os.ReadFile(filepath.Join(s.path, ConfigFile))
 	if err != nil {
 		return nil, err
 	}
@@ -29,6 +29,10 @@ func (s *Server) Config() (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+func (s *Settings) WriteConfig(conf *Config) error {
+	return writeConfig(s.path, conf)
 }
 
 func writeConfig(path string, conf *Config) error {

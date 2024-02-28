@@ -7,7 +7,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/sboon-gg/svctl/internal/server"
 	"github.com/spf13/cobra"
 )
 
@@ -102,12 +101,7 @@ func (opts *renderOpts) Run(cmd *cobra.Command) error {
 func (opts *renderOpts) render() ([]string, error) {
 	var files []string
 
-	path, err := opts.Path()
-	if err != nil {
-		return files, err
-	}
-
-	si, err := server.Open(path)
+	si, err := opts.Server()
 	if err != nil {
 		return files, errors.New("Script has not been initialized, run `init` first.")
 	}

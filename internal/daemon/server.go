@@ -3,9 +3,11 @@ package daemon
 import (
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/sboon-gg/svctl/internal/daemon/fsm"
 	"github.com/sboon-gg/svctl/internal/server"
+	"github.com/sboon-gg/svctl/internal/settings"
 )
 
 type RunningServer struct {
@@ -16,7 +18,8 @@ type RunningServer struct {
 }
 
 func OpenServer(svPath string) (*RunningServer, error) {
-	s, err := server.Open(svPath)
+	settingsPath := filepath.Join(svPath, settings.SvctlDir)
+	s, err := server.Open(svPath, settingsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +31,7 @@ func OpenServer(svPath string) (*RunningServer, error) {
 
 	rs.fsm = fsm.New(svPath, rs.setProcess, rs.fullRender)
 
-	cache, err := s.Cache()
+	cache, err := s.Settings.Cache()
 	if err != nil {
 		return nil, err
 	}
@@ -87,9 +90,9 @@ func (rs *RunningServer) setProcess(newState fsm.StateT) {
 		pid = rs.fsm.Pid()
 	}
 
-	rs.log = initLog(rs.Path).With(slog.Int("pid", pid))
+	rs.log = initLog(rs.ServerPath).With(slog.Int("pid", pid))
 
-	err := rs.StorePID(pid)
+	err := rs.Settings.StorePID(pid)
 	if err != nil {
 		rs.log.Error("Failed to store PID", slog.String("err", err.Error()))
 	}

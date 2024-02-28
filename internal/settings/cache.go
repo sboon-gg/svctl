@@ -1,4 +1,4 @@
-package server
+package settings
 
 import (
 	"os"
@@ -17,14 +17,16 @@ func NewCache() *Cache {
 	}
 }
 
-func (s *Server) Cache() (*Cache, error) {
+func (s *Settings) Cache() (*Cache, error) {
 	var cache Cache
 
-	if _, err := os.Stat(s.dotPath(CacheFile)); os.IsNotExist(err) {
+	cacheFile := filepath.Join(s.path, CacheFile)
+
+	if _, err := os.Stat(cacheFile); os.IsNotExist(err) {
 		return NewCache(), nil
 	}
 
-	content, err := os.ReadFile(s.dotPath(CacheFile))
+	content, err := os.ReadFile(cacheFile)
 	if err != nil {
 		return nil, err
 	}
@@ -37,16 +39,16 @@ func (s *Server) Cache() (*Cache, error) {
 	return &cache, nil
 }
 
-func (s *Server) WriteCache(cache *Cache) error {
+func (s *Settings) WriteCache(cache *Cache) error {
 	content, err := yaml.Marshal(cache)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(s.dotPath(CacheFile), content, 0644)
+	return os.WriteFile(filepath.Join(s.path, CacheFile), content, 0644)
 }
 
-func (s *Server) StorePID(pid int) error {
+func (s *Settings) StorePID(pid int) error {
 	cache, err := s.Cache()
 	if err != nil {
 		return err
@@ -60,8 +62,4 @@ func (s *Server) StorePID(pid int) error {
 	}
 
 	return nil
-}
-
-func (s *Server) dotPath(parts ...string) string {
-	return filepath.Join(append([]string{s.Path, SvctlDir}, parts...)...)
 }
