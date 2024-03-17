@@ -15,27 +15,12 @@ var ErrActionNotAllowed = errors.New("action not allowed")
 
 type State interface {
 	Enter(*FSM)
-	Type() StateT
 	Exit()
 }
 
-var allowedActions = map[Action][]StateT{
-	ActionStart: {
-		StateTStopped,
-	},
-	ActionStop: {
-		StateTRunning,
-	},
-	ActionRestart: {
-		StateTRunning,
-	},
-	ActionAdopt: {
-		StateTStopped,
-	},
-}
-
 type FSM struct {
-	states map[StateT]State
+	states         map[StateT]State
+	allowedActions map[Action][]State
 
 	currentState State
 	desiredState State
@@ -58,13 +43,29 @@ func New(gs *prbf2proc.GameProcess, onStateChange func(StateT), render func() er
 		StateTRestarting: &StateRestarting{},
 	}
 
+	allowedActions := map[Action][]State{
+		ActionStart: {
+			states[StateTStopped],
+		},
+		ActionStop: {
+			states[StateTRunning],
+		},
+		ActionRestart: {
+			states[StateTRunning],
+		},
+		ActionAdopt: {
+			states[StateTStopped],
+		},
+	}
+
 	return &FSM{
-		states:        states,
-		ctrl:          gs,
-		currentState:  states[StateTStopped],
-		desiredState:  states[StateTStopped],
-		onStateChange: onStateChange,
-		render:        render,
+		states:         states,
+		allowedActions: allowedActions,
+		ctrl:           prbf2.New(path),
+		currentState:   states[StateTStopped],
+		desiredState:   states[StateTStopped],
+		onStateChange:  onStateChange,
+		render:         render,
 	}
 }
 
@@ -128,13 +129,13 @@ func (fsm *FSM) Adopt(proc *os.Process) error {
 }
 
 func (fsm *FSM) isActionAllowed(action Action) bool {
-	allowedStates, ok := allowedActions[action]
+	allowedStates, ok := fsm.allowedActions[action]
 	if !ok {
 		return false
 	}
 
 	for _, state := range allowedStates {
-		if fsm.currentState.Type() == state {
+		if fsm.currentState == state {
 			return true
 		}
 	}
@@ -159,14 +160,24 @@ func (fsm *FSM) ChangeState(state StateT) {
 
 func (fsm *FSM) Transition() {
 	if fsm.desiredState != fsm.currentState {
-		slog.Debug(fmt.Sprintf("Transitioning from %s to %s", fsm.currentState.Type(), fsm.desiredState.Type()), slog.Int("pid", fsm.Pid()))
+		slog.Debug(fmt.Sprintf("Transitioning from %T to %T", fsm.currentState, fsm.desiredState), slog.Int("pid", fsm.Pid()))
 		if fsm.currentState != nil {
 			fsm.currentState.Exit()
 		}
 		fsm.currentState = fsm.desiredState
 		fsm.currentState.Enter(fsm)
-		fsm.onStateChange(fsm.currentState.Type())
+		fsm.onStateChange(fsm.stateToType(fsm.currentState))
 	}
+}
+
+func (fsm *FSM) stateToType(s State) StateT {
+	for t, state := range fsm.states {
+		if state == s {
+			return t
+		}
+	}
+
+	return StateTStopped
 }
 
 func (fsm *FSM) handleError(err error) {

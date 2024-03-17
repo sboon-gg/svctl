@@ -18,10 +18,6 @@ type StateStopped struct {
 	StateEmpty
 }
 
-func (s *StateStopped) Type() StateT {
-	return StateTStopped
-}
-
 func (s *StateStopped) Enter(fsm *FSM) {
 	err := fsm.ctrl.Stop()
 	if err != nil && !errors.Is(err, prbf2proc.ErrNotRunning) {
@@ -32,10 +28,6 @@ func (s *StateStopped) Enter(fsm *FSM) {
 
 type StateRunning struct {
 	cancel context.CancelFunc
-}
-
-func (s *StateRunning) Type() StateT {
-	return StateTRunning
 }
 
 func (s *StateRunning) Enter(fsm *FSM) {
@@ -101,10 +93,6 @@ func (s *StateRunning) Exit() {
 
 type StateRestarting struct {
 	StateEmpty
-}
-
-func (s *StateRestarting) Type() StateT {
-	return StateTRestarting
 }
 
 func (s *StateRestarting) Enter(fsm *FSM) {
