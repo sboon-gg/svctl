@@ -8,7 +8,8 @@ import (
 )
 
 type Cache struct {
-	PID int `yaml:"pid"`
+	PID           int      `yaml:"pid"`
+	UpdatePatches []string `yaml:"update_patches"`
 }
 
 func NewCache() *Cache {
