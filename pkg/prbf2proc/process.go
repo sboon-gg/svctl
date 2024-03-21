@@ -1,4 +1,4 @@
-package prbf2
+package prbf2proc
 
 import (
 	"context"

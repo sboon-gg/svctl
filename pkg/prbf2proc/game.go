@@ -1,12 +1,10 @@
-package server
+package prbf2proc
 
 import (
 	"context"
 	"errors"
 	"os"
 	"time"
-
-	"github.com/sboon-gg/svctl/pkg/prbf2"
 )
 
 type Status int
@@ -61,7 +59,7 @@ func (gs *GameProcess) Start() error {
 		return ErrAlreadyRunning
 	}
 
-	proc, err := prbf2.Start(gs.path)
+	proc, err := Start(gs.path)
 	if err != nil {
 		return err
 	}
@@ -79,7 +77,7 @@ func (gs *GameProcess) Stop() error {
 
 	gs.cancel()
 
-	err := prbf2.Stop(gs.process)
+	err := Stop(gs.process)
 	if err != nil {
 		return err
 	}
@@ -99,7 +97,7 @@ func (gs *GameProcess) watch() error {
 	gs.cancel = cancel
 
 	go func() {
-		waitCtx := prbf2.Wait(gs.process)
+		waitCtx := Wait(gs.process)
 		for {
 			select {
 			case <-waitCtx.Done():

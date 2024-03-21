@@ -8,6 +8,7 @@ import (
 	"github.com/sboon-gg/svctl/internal/daemon/fsm"
 	"github.com/sboon-gg/svctl/internal/server"
 	"github.com/sboon-gg/svctl/internal/settings"
+	"github.com/sboon-gg/svctl/pkg/prbf2proc"
 )
 
 type RunningServer struct {
@@ -29,7 +30,7 @@ func OpenServer(svPath string) (*RunningServer, error) {
 		log:    initLog(svPath),
 	}
 
-	rs.fsm = fsm.New(server.NewGameProcess(s.Path), rs.setProcess, rs.fullRender)
+	rs.fsm = fsm.New(prbf2proc.NewGameProcess(s.Path), rs.setProcess, rs.fullRender)
 
 	cache, err := s.Settings.Cache()
 	if err != nil {

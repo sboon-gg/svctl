@@ -1,6 +1,6 @@
 //go:build linux
 
-package prbf2
+package prbf2proc
 
 import (
 	"fmt"

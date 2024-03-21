@@ -1,6 +1,6 @@
 //go:build windows
 
-package prbf2
+package prbf2proc
 
 import (
 	"os"
