@@ -29,7 +29,7 @@ func OpenServer(svPath string) (*RunningServer, error) {
 		log:    initLog(svPath),
 	}
 
-	rs.fsm = fsm.New(svPath, rs.setProcess, rs.fullRender)
+	rs.fsm = fsm.New(server.NewGameProcess(s.Path), rs.setProcess, rs.fullRender)
 
 	cache, err := s.Settings.Cache()
 	if err != nil {
@@ -90,7 +90,7 @@ func (rs *RunningServer) setProcess(newState fsm.StateT) {
 		pid = rs.fsm.Pid()
 	}
 
-	rs.log = initLog(rs.ServerPath).With(slog.Int("pid", pid))
+	rs.log = initLog(rs.Path).With(slog.Int("pid", pid))
 
 	err := rs.Settings.StorePID(pid)
 	if err != nil {

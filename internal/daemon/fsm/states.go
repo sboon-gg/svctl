@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/sboon-gg/svctl/pkg/prbf2"
+	"github.com/sboon-gg/svctl/internal/server"
 )
 
 type StateEmpty struct{}
@@ -24,7 +24,7 @@ func (s *StateStopped) Type() StateT {
 
 func (s *StateStopped) Enter(fsm *FSM) {
 	err := fsm.ctrl.Stop()
-	if err != nil && !errors.Is(err, prbf2.ErrNotRunning) {
+	if err != nil && !errors.Is(err, server.ErrNotRunning) {
 		fsm.handleError(err)
 		return
 	}
@@ -46,7 +46,7 @@ func (s *StateRunning) Enter(fsm *FSM) {
 	}
 
 	err = fsm.ctrl.Start()
-	if err != nil && !errors.Is(err, prbf2.ErrAlreadyRunning) {
+	if err != nil && !errors.Is(err, server.ErrAlreadyRunning) {
 		fsm.handleError(err)
 		return
 	}
@@ -83,13 +83,13 @@ func (s *StateRunning) Enter(fsm *FSM) {
 
 func (s *StateRunning) checkStatus(fsm *FSM) {
 	switch fsm.ctrl.Status() {
-	case prbf2.StatusRunning:
+	case server.StatusRunning:
 		return
-	case prbf2.StatusExited:
+	case server.StatusExited:
 		fsm.restartCtx.inc()
 		fsm.ChangeState(StateTRestarting)
 		s.cancel()
-	case prbf2.StatusStopped:
+	case server.StatusStopped:
 		fsm.ChangeState(StateTStopped)
 		s.cancel()
 	}

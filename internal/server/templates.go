@@ -22,7 +22,7 @@ func (s *Server) Render() ([]templates.RenderOutput, error) {
 
 func (s *Server) WriteTemplatesOutput(outputs []templates.RenderOutput) error {
 	for _, out := range outputs {
-		path := filepath.Join(s.ServerPath, out.Destination)
+		path := filepath.Join(s.Path, out.Destination)
 
 		err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
 		if err != nil {

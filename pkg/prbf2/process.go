@@ -28,8 +28,9 @@ func Stop(process *os.Process) error {
 	return nil
 }
 
-func Watch(process *os.Process) (context.Context, context.CancelFunc) {
+func Wait(process *os.Process) context.Context {
 	ctx, cancel := context.WithCancel(context.Background())
+
 	go func() {
 		_, err := process.Wait()
 		if err == nil {
@@ -52,7 +53,7 @@ func Watch(process *os.Process) (context.Context, context.CancelFunc) {
 		}
 	}()
 
-	return ctx, cancel
+	return ctx
 }
 
 func isProcessHealthy(process *os.Process) bool {

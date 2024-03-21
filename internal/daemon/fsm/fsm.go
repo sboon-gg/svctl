@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/sboon-gg/svctl/pkg/prbf2"
+	"github.com/sboon-gg/svctl/internal/server"
 )
 
 var ErrActionNotAllowed = errors.New("action not allowed")
@@ -40,7 +40,7 @@ type FSM struct {
 	currentState State
 	desiredState State
 
-	ctrl *prbf2.Process
+	ctrl *server.GameProcess
 
 	restartCtx restartCtx
 	err        error
@@ -51,7 +51,7 @@ type FSM struct {
 	cancel context.CancelFunc
 }
 
-func New(path string, onStateChange func(StateT), render func() error) *FSM {
+func New(gs *server.GameProcess, onStateChange func(StateT), render func() error) *FSM {
 	states := map[StateT]State{
 		StateTStopped:    &StateStopped{},
 		StateTRunning:    &StateRunning{},
@@ -60,7 +60,7 @@ func New(path string, onStateChange func(StateT), render func() error) *FSM {
 
 	return &FSM{
 		states:        states,
-		ctrl:          prbf2.New(path),
+		ctrl:          gs,
 		currentState:  states[StateTStopped],
 		desiredState:  states[StateTStopped],
 		onStateChange: onStateChange,
