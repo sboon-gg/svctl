@@ -2,115 +2,70 @@ package prbf2
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"os"
+	"path/filepath"
+	"syscall"
+	"time"
 )
 
-type Status int
-
-const (
-	StatusStopped Status = iota // StatusStopped
-	StatusRunning               // StatusRunning
-	StatusExited                // StatusExited
-)
-
-var ErrAlreadyRunning = errors.New("process already running")
-var ErrNotRunning = errors.New("process not running")
-
-type Process struct {
-	path string
-
-	proc   *os.Process
-	status Status
-
-	watchCancel context.CancelFunc
-}
-
-func New(path string) *Process {
-	return &Process{
-		path: path,
-	}
-}
-
-func (p *Process) Status() Status {
-	return p.status
-}
-
-func (p *Process) Adopt(proc *os.Process) error {
-	if p.proc != nil {
-		return ErrAlreadyRunning
+func Start(path string) (*os.Process, error) {
+	err := verifyPath(path)
+	if err != nil {
+		return nil, fmt.Errorf("Path %q is not a PRBF2 server", path)
 	}
 
-	p.proc = proc
-	p.status = StatusRunning
-
-	return p.watchProcess()
+	return startProcess(path)
 }
 
-func (p *Process) Pid() int {
-	if p.proc == nil {
-		return -1
-	}
-
-	return p.proc.Pid
-}
-
-func (p *Process) Start() error {
-	if p.proc != nil {
-		return ErrAlreadyRunning
-	}
-
-	proc, err := startProcess(p.path)
+func Stop(process *os.Process) error {
+	err := process.Kill()
 	if err != nil {
 		return err
 	}
 
-	p.proc = proc
-	p.status = StatusRunning
-
-	return p.watchProcess()
-}
-
-func (p *Process) Stop() error {
-	if p.proc == nil {
-		return ErrNotRunning
-	}
-
-	err := stopProcess(p.proc)
-	if err != nil {
-		return err
-	}
-
-	p.watchCancel()
-	p.status = StatusStopped
-	p.proc = nil
+	_ = process.Release()
 	return nil
 }
 
-func (p *Process) watchProcess() error {
-	if p.proc == nil {
-		return errors.New("no process to watch")
-	}
-
-	watchCtx, watchCancel := context.WithCancel(context.Background())
-	p.watchCancel = watchCancel
-
+func Watch(process *os.Process) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		watchCh := watchProcess(watchCtx, p.proc)
+		_, err := process.Wait()
+		if err == nil {
+			_ = process.Release()
+		}
+
 		for {
 			select {
-			case <-watchCtx.Done():
+			case <-ctx.Done():
 				return
-			case _, ok := <-watchCh:
-				if !ok {
-					p.status = StatusExited
-					p.watchCancel()
-					p.proc = nil
-					return
+			default:
+				if isProcessHealthy(process) {
+					time.Sleep(500 * time.Millisecond)
+					continue
 				}
+
+				cancel()
+				return
 			}
 		}
 	}()
 
-	return nil
+	return ctx, cancel
+}
+
+func isProcessHealthy(process *os.Process) bool {
+	err := process.Signal(syscall.Signal(0))
+	return err == nil
+}
+
+func verifyPath(path string) error {
+	_, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+
+	_, err = os.Stat(filepath.Join(path, "mods/pr/mod.desc"))
+	return err
 }

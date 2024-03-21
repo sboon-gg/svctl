@@ -3,12 +3,10 @@
 package prbf2
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
-	"time"
 )
 
 const (
@@ -39,48 +37,4 @@ func startProcess(path string) (*os.Process, error) {
 			Setpgid: true,
 		},
 	})
-}
-
-func stopProcess(process *os.Process) error {
-	err := process.Kill()
-	if err != nil {
-		return err
-	}
-
-	_ = process.Release()
-	return nil
-}
-
-func watchProcess(ctx context.Context, p *os.Process) <-chan struct{} {
-	ch := make(chan struct{}, 1)
-
-	go func() {
-		_, err := p.Wait()
-		if err == nil {
-			_ = p.Release()
-		}
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				if isProcessHealthy(p) {
-					time.Sleep(500 * time.Millisecond)
-					continue
-				}
-
-				ch <- struct{}{}
-				close(ch)
-				return
-			}
-		}
-	}()
-
-	return ch
-}
-
-func isProcessHealthy(process *os.Process) bool {
-	err := process.Signal(syscall.Signal(0))
-	return err == nil
 }
