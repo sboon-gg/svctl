@@ -9,21 +9,21 @@ import (
 	"github.com/sboon-gg/svctl/pkg/prbf2proc"
 )
 
-type StateEmpty struct{}
+type stateEmpty struct{}
 
-func (s *StateEmpty) Enter(p *FSM) {}
-func (s *StateEmpty) Exit()        {}
+func (s *stateEmpty) Enter(p *FSM) {}
+func (s *stateEmpty) Exit()        {}
 
 type StateStopped struct {
-	StateEmpty
+	stateEmpty
 }
 
 func (s *StateStopped) Enter(fsm *FSM) {
-	err := fsm.ctrl.Stop()
-	if err != nil && !errors.Is(err, prbf2proc.ErrNotRunning) {
+	err := prbf2proc.Stop(fsm.proc)
+	if err != nil {
 		fsm.handleError(err)
-		return
 	}
+	fsm.cancel()
 }
 
 type StateRunning struct {
@@ -31,28 +31,44 @@ type StateRunning struct {
 }
 
 func (s *StateRunning) Enter(fsm *FSM) {
-	err := fsm.render()
-	if err != nil {
-		fsm.handleError(err)
-		return
-	}
+	if fsm.proc == nil {
+		err := fsm.render()
+		if err != nil {
+			fsm.handleError(err)
+			return
+		}
 
-	err = fsm.ctrl.Start()
-	if err != nil && !errors.Is(err, prbf2proc.ErrAlreadyRunning) {
-		fsm.handleError(err)
-		return
+		proc, err := prbf2proc.Start(fsm.path)
+		if err != nil {
+			fsm.handleError(err)
+			return
+		}
+
+		fsm.proc = proc
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	s.cancel = cancel
 
 	go func() {
+		_, err := fsm.proc.Wait()
+		if err == nil {
+			_ = fsm.proc.Release()
+		}
+
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			default:
-				s.checkStatus(fsm)
+				if prbf2proc.IsHealthy(fsm.proc) {
+					time.Sleep(500 * time.Millisecond)
+					continue
+				}
+
+				cancel()
+				fsm.ChangeState(StateTRestarting)
+				return
 			}
 		}
 	}()
@@ -73,26 +89,12 @@ func (s *StateRunning) Enter(fsm *FSM) {
 	}()
 }
 
-func (s *StateRunning) checkStatus(fsm *FSM) {
-	switch fsm.ctrl.Status() {
-	case prbf2proc.StatusRunning:
-		return
-	case prbf2proc.StatusExited:
-		fsm.restartCtx.inc()
-		fsm.ChangeState(StateTRestarting)
-		s.cancel()
-	case prbf2proc.StatusStopped:
-		fsm.ChangeState(StateTStopped)
-		s.cancel()
-	}
-}
-
 func (s *StateRunning) Exit() {
 	s.cancel()
 }
 
 type StateRestarting struct {
-	StateEmpty
+	stateEmpty
 }
 
 func (s *StateRestarting) Enter(fsm *FSM) {
@@ -103,13 +105,13 @@ func (s *StateRestarting) Enter(fsm *FSM) {
 	}
 
 	if fsm.restartCtx.count == 0 {
-		err := fsm.ctrl.Stop()
+		err := prbf2proc.Stop(fsm.proc)
 		if err != nil {
 			fsm.handleError(err)
 			return
 		}
 	}
-	_ = fsm.ctrl.Stop()
+	_ = prbf2proc.Stop(fsm.proc)
 
 	fsm.ChangeState(StateTRunning)
 }

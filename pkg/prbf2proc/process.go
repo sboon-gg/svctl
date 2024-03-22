@@ -1,12 +1,10 @@
 package prbf2proc
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
-	"time"
 )
 
 func Start(path string) (*os.Process, error) {
@@ -19,6 +17,10 @@ func Start(path string) (*os.Process, error) {
 }
 
 func Stop(process *os.Process) error {
+	if process == nil {
+		return nil
+	}
+
 	err := process.Kill()
 	if err != nil {
 		return err
@@ -28,35 +30,7 @@ func Stop(process *os.Process) error {
 	return nil
 }
 
-func Wait(process *os.Process) context.Context {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go func() {
-		_, err := process.Wait()
-		if err == nil {
-			_ = process.Release()
-		}
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				if isProcessHealthy(process) {
-					time.Sleep(500 * time.Millisecond)
-					continue
-				}
-
-				cancel()
-				return
-			}
-		}
-	}()
-
-	return ctx
-}
-
-func isProcessHealthy(process *os.Process) bool {
+func IsHealthy(process *os.Process) bool {
 	err := process.Signal(syscall.Signal(0))
 	return err == nil
 }

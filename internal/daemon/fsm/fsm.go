@@ -7,8 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"time"
-
-	"github.com/sboon-gg/svctl/pkg/prbf2proc"
 )
 
 var ErrActionNotAllowed = errors.New("action not allowed")
@@ -25,7 +23,8 @@ type FSM struct {
 	currentState State
 	desiredState State
 
-	ctrl *prbf2proc.GameProcess
+	path string
+	proc *os.Process
 
 	restartCtx restartCtx
 	err        error
@@ -36,7 +35,7 @@ type FSM struct {
 	cancel context.CancelFunc
 }
 
-func New(gs *prbf2proc.GameProcess, onStateChange func(StateT), render func() error) *FSM {
+func New(path string, onStateChange func(StateT), render func() error) *FSM {
 	states := map[StateT]State{
 		StateTStopped:    &StateStopped{},
 		StateTRunning:    &StateRunning{},
@@ -61,11 +60,11 @@ func New(gs *prbf2proc.GameProcess, onStateChange func(StateT), render func() er
 	return &FSM{
 		states:         states,
 		allowedActions: allowedActions,
-		ctrl:           prbf2.New(path),
 		currentState:   states[StateTStopped],
 		desiredState:   states[StateTStopped],
 		onStateChange:  onStateChange,
 		render:         render,
+		path:           path,
 	}
 }
 
@@ -88,7 +87,11 @@ func (fsm *FSM) loop() {
 }
 
 func (fsm *FSM) Pid() int {
-	return fsm.ctrl.Pid()
+	if fsm.proc != nil {
+		return fsm.proc.Pid
+	}
+
+	return -1
 }
 
 func (fsm *FSM) Start() error {
@@ -117,15 +120,11 @@ func (fsm *FSM) Adopt(proc *os.Process) error {
 		return ErrActionNotAllowed
 	}
 
-	err := fsm.ctrl.Adopt(proc)
-	if err != nil {
-		return err
-	}
+	fsm.proc = proc
 
 	go fsm.loop()
 
-	fsm.ChangeState(StateTRunning)
-	return nil
+	return fsm.Start()
 }
 
 func (fsm *FSM) isActionAllowed(action Action) bool {
