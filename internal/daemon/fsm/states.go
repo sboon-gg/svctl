@@ -31,6 +31,9 @@ type StateRunning struct {
 }
 
 func (s *StateRunning) Enter(fsm *FSM) {
+	ctx, cancel := context.WithCancel(context.Background())
+	s.cancel = cancel
+
 	if fsm.proc == nil {
 		err := fsm.render()
 		if err != nil {
@@ -47,28 +50,21 @@ func (s *StateRunning) Enter(fsm *FSM) {
 		fsm.proc = proc
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	s.cancel = cancel
-
 	go func() {
-		_, err := fsm.proc.Wait()
-		if err == nil {
-			_ = fsm.proc.Release()
-		}
+		_, _ = fsm.proc.Wait()
 
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			default:
-				if prbf2proc.IsHealthy(fsm.proc) {
-					time.Sleep(500 * time.Millisecond)
-					continue
+				if !prbf2proc.IsHealthy(fsm.proc) {
+					cancel()
+					fsm.ChangeState(StateTRestarting)
 				}
 
-				cancel()
-				fsm.ChangeState(StateTRestarting)
-				return
+				time.Sleep(500 * time.Millisecond)
+				continue
 			}
 		}
 	}()
