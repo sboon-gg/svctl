@@ -7,46 +7,48 @@ import (
 
 const maxRestarts = 5
 
-type restartCtx struct {
-	count       int
-	resetCancel context.CancelFunc
+type restarter struct {
+	numRestarts uint8
+	timer       *time.Timer
+	cancel      context.CancelFunc
 }
 
-func (r *restartCtx) inc() {
-	r.count++
+func (r *restarter) restartTimer() {
+	ctx, cancel := context.WithCancel(context.Background())
+	r.cancel = cancel
 
-	if r.resetCancel != nil {
-		r.resetCancel()
+	if r.timer == nil {
+		r.timer = time.NewTimer(time.Minute)
+	} else {
+		r.cancel()
+		r.timer.Stop()
+		r.timer.Reset(time.Minute)
 	}
-	go r.start()
-}
 
-func (r *restartCtx) max() bool {
-	return r.count >= maxRestarts
-}
-
-func (r *restartCtx) start() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-
-	resetCtx, resetCancel := context.WithCancel(context.Background())
-	r.resetCancel = resetCancel
-
-	for {
+	go func() {
 		select {
-		case <-resetCtx.Done():
-			return
 		case <-ctx.Done():
-			r.reset()
 			return
+		case <-r.timer.C:
+			r.Reset()
 		}
-	}
+	}()
 }
 
-func (r *restartCtx) reset() {
-	r.count = 0
-	if r.resetCancel != nil {
-		r.resetCancel()
+func (r *restarter) Increment() {
+	r.numRestarts++
+	r.restartTimer()
+}
+
+func (r *restarter) Reset() {
+	if r.timer != nil {
+		r.cancel()
+		r.timer.Stop()
 	}
-	r.resetCancel = nil
+
+	r.numRestarts = 0
+}
+
+func (r *restarter) LimitReached() bool {
+	return r.numRestarts >= maxRestarts
 }

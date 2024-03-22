@@ -26,8 +26,7 @@ type FSM struct {
 	path string
 	proc *os.Process
 
-	restartCtx restartCtx
-	err        error
+	err error
 
 	onStateChange func(StateT)
 	render        func() error

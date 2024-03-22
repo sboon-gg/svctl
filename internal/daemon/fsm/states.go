@@ -91,23 +91,20 @@ func (s *StateRunning) Exit() {
 
 type StateRestarting struct {
 	stateEmpty
+	restartCtx restarter
 }
 
 func (s *StateRestarting) Enter(fsm *FSM) {
-	if fsm.restartCtx.max() {
+	if s.restartCtx.LimitReached() {
 		fsm.handleError(errors.New("max restarts reached"))
-		fsm.restartCtx.reset()
+		s.restartCtx.Reset()
 		return
 	}
 
-	if fsm.restartCtx.count == 0 {
-		err := prbf2proc.Stop(fsm.proc)
-		if err != nil {
-			fsm.handleError(err)
-			return
-		}
-	}
+	s.restartCtx.Increment()
+
 	_ = prbf2proc.Stop(fsm.proc)
+	fsm.proc = nil
 
 	fsm.ChangeState(StateTRunning)
 }
