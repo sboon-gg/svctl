@@ -31,8 +31,11 @@ func (p *PRBF2Process) Adopt(proc *os.Process) error {
 	p.process = proc
 
 	if !p.IsRunning() {
+		p.process = nil
 		return fmt.Errorf("Process %d is not running", proc.Pid)
 	}
+
+	p.adopted = true
 
 	return nil
 }
@@ -73,6 +76,8 @@ func (p *PRBF2Process) Stop() error {
 	_ = p.process.Release()
 
 	p.process = nil
+	p.adopted = false
+
 	return nil
 }
 
@@ -96,22 +101,21 @@ func (p *PRBF2Process) IsRunning() bool {
 
 func (p *PRBF2Process) Wait() error {
 	if p.adopted {
-		return p.waitForAdopted()
+		p.waitForAdopted()
+		return nil
 	}
 
 	_, err := p.process.Wait()
 	return err
 }
 
-func (p *PRBF2Process) waitForAdopted() error {
+func (p *PRBF2Process) waitForAdopted() {
 	for {
 		if !p.IsRunning() {
 			break
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
-
-	return nil
 }
 
 func verifyPath(path string) error {
