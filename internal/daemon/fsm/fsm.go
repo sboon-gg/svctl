@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"os"
 	"time"
+
+	"github.com/sboon-gg/svctl/pkg/prbf2proc"
 )
 
 var ErrActionNotAllowed = errors.New("action not allowed")
@@ -23,8 +25,7 @@ type FSM struct {
 	currentState State
 	desiredState State
 
-	path string
-	proc *os.Process
+	proc *prbf2proc.PRBF2Process
 
 	err error
 
@@ -56,6 +57,8 @@ func New(path string, onStateChange func(StateT), render func() error) *FSM {
 		},
 	}
 
+	proc, _ := prbf2proc.New(path)
+
 	return &FSM{
 		states:         states,
 		allowedActions: allowedActions,
@@ -63,7 +66,7 @@ func New(path string, onStateChange func(StateT), render func() error) *FSM {
 		desiredState:   states[StateTStopped],
 		onStateChange:  onStateChange,
 		render:         render,
-		path:           path,
+		proc:           proc,
 	}
 }
 
@@ -86,11 +89,7 @@ func (fsm *FSM) loop() {
 }
 
 func (fsm *FSM) Pid() int {
-	if fsm.proc != nil {
-		return fsm.proc.Pid
-	}
-
-	return -1
+	return fsm.proc.Pid()
 }
 
 func (fsm *FSM) Start() error {
@@ -119,7 +118,10 @@ func (fsm *FSM) Adopt(proc *os.Process) error {
 		return ErrActionNotAllowed
 	}
 
-	fsm.proc = proc
+	err := fsm.proc.Adopt(proc)
+	if err != nil {
+		return err
+	}
 
 	go fsm.loop()
 

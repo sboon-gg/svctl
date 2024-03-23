@@ -3,10 +3,9 @@ package fsm
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
-
-	"github.com/sboon-gg/svctl/pkg/prbf2proc"
 )
 
 type stateEmpty struct{}
@@ -19,7 +18,7 @@ type StateStopped struct {
 }
 
 func (s *StateStopped) Enter(fsm *FSM) {
-	err := prbf2proc.Stop(fsm.proc)
+	err := fsm.proc.Stop()
 	if err != nil {
 		fsm.handleError(err)
 	}
@@ -34,39 +33,28 @@ func (s *StateRunning) Enter(fsm *FSM) {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.cancel = cancel
 
-	if fsm.proc == nil {
+	if !fsm.proc.IsRunning() {
 		err := fsm.render()
 		if err != nil {
 			fsm.handleError(err)
 			return
 		}
 
-		proc, err := prbf2proc.Start(fsm.path)
+		err = fsm.proc.Start()
 		if err != nil {
 			fsm.handleError(err)
 			return
 		}
-
-		fsm.proc = proc
 	}
 
 	go func() {
-		_, _ = fsm.proc.Wait()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				if !prbf2proc.IsHealthy(fsm.proc) {
-					cancel()
-					fsm.ChangeState(StateTRestarting)
-				}
-
-				time.Sleep(500 * time.Millisecond)
-				continue
-			}
+		err := fsm.proc.Wait()
+		if err != nil {
+			fsm.handleError(errors.Join(err, fmt.Errorf("process exited with error")))
 		}
+
+		cancel()
+		fsm.ChangeState(StateTRestarting)
 	}()
 
 	go func() {
@@ -103,8 +91,7 @@ func (s *StateRestarting) Enter(fsm *FSM) {
 
 	s.restartCtx.Increment()
 
-	_ = prbf2proc.Stop(fsm.proc)
-	fsm.proc = nil
+	_ = fsm.proc.Stop()
 
 	fsm.ChangeState(StateTRunning)
 }
