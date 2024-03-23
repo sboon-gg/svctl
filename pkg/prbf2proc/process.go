@@ -37,6 +37,8 @@ func (p *PRBF2Process) Adopt(proc *os.Process) error {
 
 	p.adopted = true
 
+	killer.Watch(p)
+
 	return nil
 }
 
@@ -60,6 +62,8 @@ func (p *PRBF2Process) Start() error {
 
 	p.process = proc
 
+	killer.Watch(p)
+
 	return nil
 }
 
@@ -67,6 +71,8 @@ func (p *PRBF2Process) Stop() error {
 	if p.process == nil {
 		return nil
 	}
+
+	killer.Unwatch(p)
 
 	err := p.process.Kill()
 	if err != nil {
