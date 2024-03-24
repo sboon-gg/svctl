@@ -74,6 +74,11 @@ func (p *PRBF2Process) Stop() error {
 
 	killer.Unwatch(p)
 
+	if !p.IsRunning() {
+		p.process = nil
+		return nil
+	}
+
 	err := p.process.Kill()
 	if err != nil {
 		return err

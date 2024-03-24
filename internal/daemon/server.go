@@ -41,7 +41,9 @@ func OpenServer(svPath string) (*RunningServer, error) {
 		if err == nil {
 			err = rs.fsm.Adopt(proc)
 			if err != nil {
-				return nil, err
+				// Process can be already dead
+				cache.PID = -1
+				s.Settings.WriteCache(cache)
 			}
 		}
 	}
