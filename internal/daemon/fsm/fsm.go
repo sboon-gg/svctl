@@ -8,42 +8,26 @@ import (
 	"os"
 	"time"
 
-	"github.com/sboon-gg/svctl/pkg/prbf2"
+	"github.com/sboon-gg/svctl/pkg/prbf2proc"
 )
 
 var ErrActionNotAllowed = errors.New("action not allowed")
 
 type State interface {
 	Enter(*FSM)
-	Type() StateT
 	Exit()
 }
 
-var allowedActions = map[Action][]StateT{
-	ActionStart: {
-		StateTStopped,
-	},
-	ActionStop: {
-		StateTRunning,
-	},
-	ActionRestart: {
-		StateTRunning,
-	},
-	ActionAdopt: {
-		StateTStopped,
-	},
-}
-
 type FSM struct {
-	states map[StateT]State
+	states         map[StateT]State
+	allowedActions map[Action][]State
 
 	currentState State
 	desiredState State
 
-	ctrl *prbf2.Process
+	proc *prbf2proc.PRBF2Process
 
-	restartCtx restartCtx
-	err        error
+	err error
 
 	onStateChange func(StateT)
 	render        func() error
@@ -58,13 +42,31 @@ func New(path string, onStateChange func(StateT), render func() error) *FSM {
 		StateTRestarting: &StateRestarting{},
 	}
 
+	allowedActions := map[Action][]State{
+		ActionStart: {
+			states[StateTStopped],
+		},
+		ActionStop: {
+			states[StateTRunning],
+		},
+		ActionRestart: {
+			states[StateTRunning],
+		},
+		ActionAdopt: {
+			states[StateTStopped],
+		},
+	}
+
+	proc, _ := prbf2proc.New(path)
+
 	return &FSM{
-		states:        states,
-		ctrl:          prbf2.New(path),
-		currentState:  states[StateTStopped],
-		desiredState:  states[StateTStopped],
-		onStateChange: onStateChange,
-		render:        render,
+		states:         states,
+		allowedActions: allowedActions,
+		currentState:   states[StateTStopped],
+		desiredState:   states[StateTStopped],
+		onStateChange:  onStateChange,
+		render:         render,
+		proc:           proc,
 	}
 }
 
@@ -87,7 +89,7 @@ func (fsm *FSM) loop() {
 }
 
 func (fsm *FSM) Pid() int {
-	return fsm.ctrl.Pid()
+	return fsm.proc.Pid()
 }
 
 func (fsm *FSM) Start() error {
@@ -116,25 +118,24 @@ func (fsm *FSM) Adopt(proc *os.Process) error {
 		return ErrActionNotAllowed
 	}
 
-	err := fsm.ctrl.Adopt(proc)
+	err := fsm.proc.Adopt(proc)
 	if err != nil {
 		return err
 	}
 
 	go fsm.loop()
 
-	fsm.ChangeState(StateTRunning)
-	return nil
+	return fsm.Start()
 }
 
 func (fsm *FSM) isActionAllowed(action Action) bool {
-	allowedStates, ok := allowedActions[action]
+	allowedStates, ok := fsm.allowedActions[action]
 	if !ok {
 		return false
 	}
 
 	for _, state := range allowedStates {
-		if fsm.currentState.Type() == state {
+		if fsm.currentState == state {
 			return true
 		}
 	}
@@ -159,14 +160,24 @@ func (fsm *FSM) ChangeState(state StateT) {
 
 func (fsm *FSM) Transition() {
 	if fsm.desiredState != fsm.currentState {
-		slog.Debug(fmt.Sprintf("Transitioning from %s to %s", fsm.currentState.Type(), fsm.desiredState.Type()), slog.Int("pid", fsm.Pid()))
+		slog.Debug(fmt.Sprintf("Transitioning from %T to %T", fsm.currentState, fsm.desiredState), slog.Int("pid", fsm.Pid()))
 		if fsm.currentState != nil {
 			fsm.currentState.Exit()
 		}
 		fsm.currentState = fsm.desiredState
 		fsm.currentState.Enter(fsm)
-		fsm.onStateChange(fsm.currentState.Type())
+		fsm.onStateChange(fsm.stateToType(fsm.currentState))
 	}
+}
+
+func (fsm *FSM) stateToType(s State) StateT {
+	for t, state := range fsm.states {
+		if state == s {
+			return t
+		}
+	}
+
+	return StateTStopped
 }
 
 func (fsm *FSM) handleError(err error) {

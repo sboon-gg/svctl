@@ -5,8 +5,8 @@ import (
 )
 
 type Server struct {
-	ServerPath string
-	Settings   *settings.Settings
+	Path     string
+	Settings *settings.Settings
 }
 
 func Open(serverPath, settingsPath string) (*Server, error) {
@@ -16,7 +16,7 @@ func Open(serverPath, settingsPath string) (*Server, error) {
 	}
 
 	return &Server{
-		ServerPath: serverPath,
-		Settings:   s,
+		Path:     serverPath,
+		Settings: s,
 	}, nil
 }
