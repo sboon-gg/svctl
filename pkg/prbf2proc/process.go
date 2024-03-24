@@ -12,7 +12,6 @@ import (
 type PRBF2Process struct {
 	path string
 
-	adopted bool
 	process *os.Process
 }
 
@@ -34,8 +33,6 @@ func (p *PRBF2Process) Adopt(proc *os.Process) error {
 		p.process = nil
 		return fmt.Errorf("Process %d is not running", proc.Pid)
 	}
-
-	p.adopted = true
 
 	killer.Watch(p)
 
@@ -87,7 +84,6 @@ func (p *PRBF2Process) Stop() error {
 	_ = p.process.Release()
 
 	p.process = nil
-	p.adopted = false
 
 	return nil
 }
