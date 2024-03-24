@@ -3,7 +3,6 @@ package fsm
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"time"
 )
@@ -48,10 +47,7 @@ func (s *StateRunning) Enter(fsm *FSM) {
 	}
 
 	go func() {
-		err := fsm.proc.Wait()
-		if err != nil {
-			fsm.handleError(errors.Join(err, fmt.Errorf("process exited with error")))
-		}
+		fsm.proc.Wait()
 
 		cancel()
 		fsm.ChangeState(StateTRestarting)

@@ -105,17 +105,9 @@ func (p *PRBF2Process) IsRunning() bool {
 	return isRunning
 }
 
-func (p *PRBF2Process) Wait() error {
-	if p.adopted {
-		p.waitForAdopted()
-		return nil
-	}
+func (p *PRBF2Process) Wait() {
+	_, _ = p.process.Wait()
 
-	_, err := p.process.Wait()
-	return err
-}
-
-func (p *PRBF2Process) waitForAdopted() {
 	for {
 		if !p.IsRunning() {
 			break
