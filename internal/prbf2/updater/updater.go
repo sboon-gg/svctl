@@ -9,7 +9,7 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 
 	"github.com/sboon-gg/svctl/internal/server"
-	"github.com/sboon-gg/svctl/pkg/prbf2"
+	"github.com/sboon-gg/svctl/pkg/prbf2update"
 	"github.com/sboon-gg/svctl/pkg/templates"
 )
 
@@ -24,7 +24,8 @@ func New(s *server.Server) *Updater {
 }
 
 func (u *Updater) Update() error {
-	changedFiles, err := prbf2.Update(u.server.Path)
+	updater := prbf2update.New(u.server.Path, nil)
+	changedFiles, err := updater.Update()
 	if err != nil {
 		return err
 	}
