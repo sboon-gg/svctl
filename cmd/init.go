@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"os"
 
 	"github.com/sboon-gg/svctl/internal/settings"
 	"github.com/spf13/cobra"
@@ -47,11 +46,6 @@ func (opts *initOpts) Run() error {
 	_, err = opts.Server()
 	if err == nil {
 		return errors.New("svctl was already initialized on this path - run `svctl cleanup` before initializing again")
-	}
-
-	err = os.Mkdir(svctlPath, 0755)
-	if err != nil {
-		return err
 	}
 
 	_, err = settings.Initialize(svctlPath, &settings.Opts{
