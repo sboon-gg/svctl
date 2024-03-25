@@ -32,33 +32,34 @@ func New(path string, cache *Cache) *PRBF2Update {
 	}
 }
 
-func (u *PRBF2Update) Update() (string, string, error) {
+func (u *PRBF2Update) Update() ([]string, error) {
 	old, err := u.currentVersion()
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
-	if u.cache != nil {
-		latest, err := u.cache.LatestVersion()
-		if err != nil {
-			return "", "", err
-		}
+	latest, err := u.cache.LatestVersion()
+	if err != nil {
+		return nil, err
+	}
 
-		err = u.cache.FetchFor(old, latest)
-		if err != nil {
-			return "", "", err
-		}
+	err = u.cache.FetchFor(old, latest)
+	if err != nil {
+		return nil, err
 	}
 
 	out, err := u.update()
 	if err != nil {
 		fmt.Println(string(out))
-		return "", "", err
+		return nil, err
 	}
 
 	new, err := u.currentVersion()
+	if err != nil {
+		return nil, err
+	}
 
-	return old, new, nil
+	return u.cache.ChangedFiles(old, new)
 }
 
 func (u *PRBF2Update) currentVersion() (string, error) {

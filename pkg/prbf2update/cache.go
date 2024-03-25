@@ -48,45 +48,9 @@ func (c *Cache) FetchFor(currentVersion, requiredVersion string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	if requiredVersion == currentVersion {
-		return nil
-	}
-
-	cv, err := version.NewVersion(currentVersion)
+	patchFilePaths, err := c.cachePatches(currentVersion, requiredVersion)
 	if err != nil {
 		return err
-	}
-
-	var patchFilePaths []string
-
-	for {
-		info, err := c.patchMeta(requiredVersion)
-		if err != nil {
-			return err
-		}
-
-		patchUrl := info.ServerData[rand.Intn(len(info.ServerData))]
-		patchPath, err := c.cachePatch(patchUrl)
-		if err != nil {
-			return err
-		}
-
-		patchFilePaths = append(patchFilePaths, patchPath)
-
-		requiredVersion = info.Requires
-
-		rv, err := version.NewVersion(requiredVersion)
-		if err != nil {
-			return err
-		}
-
-		if rv.LessThan(cv) {
-			return fmt.Errorf("No patch available for version %s", currentVersion)
-		}
-
-		if rv.Equal(cv) {
-			break
-		}
 	}
 
 	// copy patch to temp
@@ -128,6 +92,74 @@ func (c *Cache) LatestVersion() (string, error) {
 	}
 
 	return latestVersion.Latest, nil
+}
+
+func (c *Cache) ChangedFiles(fromVer, toVer string) ([]string, error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	patchFilePaths, err := c.cachePatches(fromVer, toVer)
+	if err != nil {
+		return nil, err
+	}
+
+	var changedFiles []string
+
+	for _, patchFilePath := range patchFilePaths {
+		files, err := patchChangedFiles(patchFilePath)
+		if err != nil {
+			return nil, err
+		}
+
+		changedFiles = append(changedFiles, files...)
+	}
+
+	return changedFiles, nil
+}
+
+func (c *Cache) cachePatches(fromVer, toVer string) ([]string, error) {
+	if toVer == fromVer {
+		return nil, nil
+	}
+
+	cv, err := version.NewVersion(fromVer)
+	if err != nil {
+		return nil, err
+	}
+
+	var patchFilePaths []string
+
+	for {
+		info, err := c.patchMeta(toVer)
+		if err != nil {
+			return nil, err
+		}
+
+		patchUrl := info.ServerData[rand.Intn(len(info.ServerData))]
+		patchPath, err := c.cachePatch(patchUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		patchFilePaths = append(patchFilePaths, patchPath)
+
+		toVer = info.Requires
+
+		rv, err := version.NewVersion(toVer)
+		if err != nil {
+			return nil, err
+		}
+
+		if rv.LessThan(cv) {
+			return nil, fmt.Errorf("No patch available for version %s", fromVer)
+		}
+
+		if rv.Equal(cv) {
+			break
+		}
+	}
+
+	return patchFilePaths, nil
 }
 
 func (c *Cache) cachePatch(patchUrl string) (string, error) {
