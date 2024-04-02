@@ -30,12 +30,12 @@ func (o *updateOpts) Run(cmd *cobra.Command) error {
 
 	u := prbf2update.New(o.path, cache)
 
-	old, new, err := u.Update()
+	result, err := u.Update()
 	if err != nil {
 		return err
 	}
 
-	cmd.Println("Updated from", old, "to", new)
+	cmd.Println("Updated from", result.OldVersion, "to", result.NewVersion)
 
 	return nil
 }

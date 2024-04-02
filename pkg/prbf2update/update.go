@@ -12,6 +12,12 @@ const (
 	modDescPath = "mods/pr/mod.desc"
 )
 
+type Result struct {
+	ChangedFiles []string
+	OldVersion   string
+	NewVersion   string
+}
+
 type PRBF2Update struct {
 	path  string
 	cache *Cache
@@ -32,7 +38,7 @@ func New(path string, cache *Cache) *PRBF2Update {
 	}
 }
 
-func (u *PRBF2Update) Update() ([]string, error) {
+func (u *PRBF2Update) Update() (*Result, error) {
 	old, err := u.currentVersion()
 	if err != nil {
 		return nil, err
@@ -59,7 +65,16 @@ func (u *PRBF2Update) Update() ([]string, error) {
 		return nil, err
 	}
 
-	return u.cache.ChangedFiles(old, new)
+	changedFiles, err := u.cache.ChangedFiles(old, new)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Result{
+		ChangedFiles: changedFiles,
+		OldVersion:   old,
+		NewVersion:   new,
+	}, nil
 }
 
 func (u *PRBF2Update) currentVersion() (string, error) {
