@@ -2,19 +2,10 @@ package prbf2update
 
 import (
 	"bytes"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 )
-
-// Validating server license... Valid
-//   IP: 45.63.41.122
-//   Port: 16567
-//   User: Vista
-
-// Reading current version... 1.7.0.0
-// Checking latest version... 1.7.4.5
 
 const (
 	exe = "prserverupdater-linux64"
@@ -40,8 +31,8 @@ func (u *PRBF2Update) update() ([]byte, error) {
 	cmd.Dir = binPath
 
 	buf := new(bytes.Buffer)
-	cmd.Stdout = io.MultiWriter(os.Stdout, buf)
-	cmd.Stderr = io.MultiWriter(os.Stderr, buf)
+	cmd.Stdout = buf
+	cmd.Stderr = buf
 
 	err = cmd.Run()
 	if err != nil {

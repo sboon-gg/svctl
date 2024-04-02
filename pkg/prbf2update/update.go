@@ -2,7 +2,6 @@ package prbf2update
 
 import (
 	"encoding/xml"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,12 +39,7 @@ func New(path string, cache *Cache) *PRBF2Update {
 }
 
 func (u *PRBF2Update) Update() (*Result, error) {
-	old, err := u.currentVersion()
-	if err != nil {
-		return nil, err
-	}
-
-	latest, err := u.cache.LatestVersion()
+	old, latest, err := u.versions()
 	if err != nil {
 		return nil, err
 	}
@@ -55,9 +49,8 @@ func (u *PRBF2Update) Update() (*Result, error) {
 		return nil, err
 	}
 
-	out, err := u.update()
+	_, err = u.update()
 	if err != nil {
-		fmt.Println(string(out))
 		return nil, err
 	}
 
@@ -76,6 +69,34 @@ func (u *PRBF2Update) Update() (*Result, error) {
 		OldVersion:   old,
 		NewVersion:   new,
 	}, nil
+}
+
+func (u *PRBF2Update) IsNewVersionAvailable() (bool, error) {
+	current, latest, err := u.versions()
+	if err != nil {
+		return false, err
+	}
+
+	return current != latest, nil
+}
+
+func (u *PRBF2Update) FetchPatches() error {
+	current, latest, err := u.versions()
+	if err != nil {
+		return err
+	}
+
+	return u.cache.FetchFor(current, latest)
+}
+
+func (u *PRBF2Update) versions() (current, latest string, err error) {
+	current, err = u.currentVersion()
+	if err != nil {
+		return
+	}
+
+	latest, err = u.cache.LatestVersion()
+	return
 }
 
 func (u *PRBF2Update) currentVersion() (string, error) {
