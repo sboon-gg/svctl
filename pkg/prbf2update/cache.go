@@ -130,10 +130,14 @@ func (c *Cache) cachePatches(fromVer, toVer string) ([]string, error) {
 	var patchFilePaths []string
 
 	for {
+		println("Fetching patch info", toVer)
+
 		info, err := c.patchMeta(toVer)
 		if err != nil {
 			return nil, err
 		}
+
+		println("Fetching patch from", info.Requires, "to", toVer)
 
 		patchUrl := info.ServerData[rand.Intn(len(info.ServerData))]
 		patchPath, err := c.cachePatch(patchUrl)
@@ -216,6 +220,8 @@ func (c *Cache) patchMeta(version string) (*patchMeta, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		_ = os.WriteFile(path, data, 0644)
 	}
 
 	var info patchMeta

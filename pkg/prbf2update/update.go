@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -84,15 +85,13 @@ func (u *PRBF2Update) currentVersion() (string, error) {
 	}
 
 	var modDesc struct {
-		Mod struct {
-			Version string `xml:"version"`
-		} `xml:"mod"`
+		XMLName xml.Name `xml:"mod"`
+		Version string   `xml:"version"`
 	}
-
 	err = xml.Unmarshal(content, &modDesc)
 	if err != nil {
 		return "", err
 	}
 
-	return modDesc.Mod.Version, nil
+	return strings.TrimSpace(modDesc.Version), nil
 }
