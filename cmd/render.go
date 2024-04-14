@@ -106,19 +106,22 @@ func (opts *renderOpts) render() ([]string, error) {
 		return files, errors.New("Script has not been initialized, run `init` first.")
 	}
 
-	outputs, err := si.Render()
 	if err != nil {
 		return files, err
 	}
 
 	if opts.dryRun {
+		outputs, err := si.DryRender()
+		if err != nil {
+			return nil, err
+		}
 		for _, out := range outputs {
 			fmt.Printf("File: %s\n---\n%s", out.Destination, string(out.Content))
 		}
 	} else {
-		err = si.WriteTemplatesOutput(outputs)
+		err := si.Render()
 		if err != nil {
-			return files, err
+			return nil, err
 		}
 	}
 
