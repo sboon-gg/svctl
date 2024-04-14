@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sboon-gg/svctl/internal/daemon/fsm"
 	"github.com/sboon-gg/svctl/pkg/prbf2update"
 )
 
@@ -15,7 +16,7 @@ const (
 
 type Daemon struct {
 	cacheDir     string
-	Servers      map[string]*RunningServer
+	Servers      map[string]*fsm.FSM
 	updaterCache *prbf2update.Cache
 }
 
@@ -40,7 +41,7 @@ func New() (*Daemon, error) {
 	}
 
 	return &Daemon{
-		Servers:      make(map[string]*RunningServer),
+		Servers:      make(map[string]*fsm.FSM),
 		cacheDir:     svctlCacheDir,
 		updaterCache: prbf2update.NewCache(updaterCacheDir),
 	}, nil
@@ -108,7 +109,7 @@ func (s *Daemon) Stop(path string) error {
 	return srv.Stop()
 }
 
-func (d *Daemon) findServer(path string) (*RunningServer, error) {
+func (d *Daemon) findServer(path string) (*fsm.FSM, error) {
 	s, ok := d.Servers[path]
 	if !ok {
 		return nil, fmt.Errorf("server %q not found", path)

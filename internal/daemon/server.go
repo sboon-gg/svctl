@@ -18,19 +18,14 @@ type RunningServer struct {
 	log *slog.Logger
 }
 
-func OpenServer(svPath string, updaterCache *prbf2update.Cache) (*RunningServer, error) {
+func OpenServer(svPath string, updaterCache *prbf2update.Cache) (*fsm.FSM, error) {
 	settingsPath := filepath.Join(svPath, settings.SvctlDir)
 	s, err := server.Open(svPath, settingsPath)
 	if err != nil {
 		return nil, err
 	}
 
-	rs := &RunningServer{
-		Server: *s,
-		log:    initLog(svPath),
-	}
-
-	rs.fsm = fsm.New(s.Path, rs.setProcess, rs.fullRender, updaterCache)
+	svFSM := fsm.New(s, updaterCache)
 
 	cache, err := s.Settings.Cache()
 	if err != nil {
@@ -40,7 +35,7 @@ func OpenServer(svPath string, updaterCache *prbf2update.Cache) (*RunningServer,
 	if cache.PID != -1 {
 		proc, err := os.FindProcess(cache.PID)
 		if err == nil {
-			err = rs.fsm.Adopt(proc)
+			err = svFSM.Adopt(proc)
 			if err != nil {
 				// Process can be already dead
 				cache.PID = -1
@@ -49,7 +44,7 @@ func OpenServer(svPath string, updaterCache *prbf2update.Cache) (*RunningServer,
 		}
 	}
 
-	return rs, nil
+	return svFSM, nil
 }
 
 func (rs *RunningServer) Start() error {
@@ -102,12 +97,7 @@ func (rs *RunningServer) setProcess(newState fsm.StateT) {
 }
 
 func (rs *RunningServer) fullRender() error {
-	outputs, err := rs.Render()
-	if err != nil {
-		return err
-	}
-
-	return rs.WriteTemplatesOutput(outputs)
+	return rs.Render()
 }
 
 func initLog(svPath string) *slog.Logger {

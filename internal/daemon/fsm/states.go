@@ -33,7 +33,7 @@ func (s *StateRunning) Enter(fsm *FSM) {
 	s.cancel = cancel
 
 	if !fsm.proc.IsRunning() {
-		err := fsm.render()
+		err := fsm.server.Render()
 		if err != nil {
 			fsm.handleError(err)
 			return
@@ -59,7 +59,7 @@ func (s *StateRunning) Enter(fsm *FSM) {
 			case <-ctx.Done():
 				return
 			default:
-				err := fsm.render()
+				err := fsm.server.Render()
 				if err != nil {
 					slog.Error("Failed to render templates: %s", err, slog.Int("pid", fsm.Pid()))
 				}
