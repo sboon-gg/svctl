@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -20,18 +21,25 @@ const (
 type Settings struct {
 	path      string
 	Templates *templates.Renderer
+	Log       *slog.Logger
 }
 
 func Open(path string) (*Settings, error) {
-	// TODO: validate settings
 	s := &Settings{
 		path: path,
 	}
 
-	_, err := s.Config()
+	config, err := s.Config()
 	if err != nil {
 		return nil, err
 	}
+
+	logger, err := NewLogger(path, config.Loggers)
+	if err != nil {
+		return nil, err
+	}
+
+	s.Log = logger
 
 	templatesPath := filepath.Join(path, TemplatesDir)
 	_, err = os.Stat(templatesPath)
@@ -62,7 +70,22 @@ func Initialize(path string, opts *Opts) (*Settings, error) {
 		return nil, err
 	}
 
-	config := &Config{}
+	config := &Config{
+		Loggers: []LoggerConfig{
+			{
+				Level: slog.LevelDebug,
+				Stdout: &StdoutLogger{
+					Type: textLogger,
+				},
+			},
+			{
+				Level: slog.LevelInfo,
+				File: &FileLogger{
+					Path: "svctl.log",
+				},
+			},
+		},
+	}
 
 	if opts.TemplatesRepo != "" {
 		templatesPath := filepath.Join(path, TemplatesDir)
