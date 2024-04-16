@@ -1,7 +1,6 @@
 package daemon
 
 import (
-	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -10,13 +9,6 @@ import (
 	"github.com/sboon-gg/svctl/internal/settings"
 	"github.com/sboon-gg/svctl/pkg/prbf2update"
 )
-
-type RunningServer struct {
-	server.Server
-
-	fsm *fsm.FSM
-	log *slog.Logger
-}
 
 func OpenServer(svPath string, updaterCache *prbf2update.Cache) (*fsm.FSM, error) {
 	settingsPath := filepath.Join(svPath, settings.SvctlDir)
@@ -39,7 +31,10 @@ func OpenServer(svPath string, updaterCache *prbf2update.Cache) (*fsm.FSM, error
 			if err != nil {
 				// Process can be already dead
 				cache.PID = -1
-				s.Settings.WriteCache(cache)
+				err = s.Settings.WriteCache(cache)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}

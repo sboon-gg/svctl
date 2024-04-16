@@ -171,16 +171,6 @@ func (fsm *FSM) Transition() {
 	}
 }
 
-func (fsm *FSM) stateToType(s State) StateT {
-	for t, state := range fsm.states {
-		if state == s {
-			return t
-		}
-	}
-
-	return StateTStopped
-}
-
 func (fsm *FSM) handleError(err error) {
 	fsm.err = err
 	fsm.server.Settings.Log.Error(err.Error())
