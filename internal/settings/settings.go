@@ -82,6 +82,7 @@ func Initialize(path string, opts *Opts) (*Settings, error) {
 				Level: slog.LevelInfo,
 				File: &FileLogger{
 					Path: "svctl.log",
+					Type: jsonLogger,
 				},
 			},
 		},

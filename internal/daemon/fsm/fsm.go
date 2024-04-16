@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"time"
 
@@ -67,6 +66,7 @@ func New(sv *server.Server, updateCache *prbf2update.Cache) *FSM {
 		allowedActions: allowedActions,
 		currentState:   states[StateTStopped],
 		desiredState:   states[StateTStopped],
+		server:         sv,
 		proc:           proc,
 		updater:        prbf2update.New(sv.Path, updateCache),
 	}
@@ -162,7 +162,7 @@ func (fsm *FSM) ChangeState(state StateT) {
 
 func (fsm *FSM) Transition() {
 	if fsm.desiredState != fsm.currentState {
-		slog.Debug(fmt.Sprintf("Transitioning from %T to %T", fsm.currentState, fsm.desiredState), slog.Int("pid", fsm.Pid()))
+		fsm.server.Settings.Log.Debug(fmt.Sprintf("Transitioning from %T to %T", fsm.currentState, fsm.desiredState))
 		if fsm.currentState != nil {
 			fsm.currentState.Exit()
 		}
@@ -183,6 +183,6 @@ func (fsm *FSM) stateToType(s State) StateT {
 
 func (fsm *FSM) handleError(err error) {
 	fsm.err = err
-	slog.Error(err.Error(), slog.Int("pid", fsm.Pid()))
+	fsm.server.Settings.Log.Error(err.Error())
 	fsm.ChangeState(StateTStopped)
 }

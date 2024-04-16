@@ -80,9 +80,18 @@ func NewLogger(settingsPath string, loggers []LoggerConfig) (*slog.Logger, error
 				return nil, errors.New("invalid logger type")
 			}
 		case logger.Stdout != nil:
-			handlers[i] = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			options := &slog.HandlerOptions{
 				Level: logger.Level,
-			})
+			}
+
+			switch logger.Stdout.Type {
+			case textLogger:
+				handlers[i] = slog.NewTextHandler(os.Stdout, options)
+			case jsonLogger:
+				handlers[i] = slog.NewJSONHandler(os.Stdout, options)
+			default:
+				return nil, errors.New("invalid logger type")
+			}
 		}
 	}
 
@@ -98,7 +107,7 @@ func DiscordTextConverter(addSource bool, replaceAttr func(groups []string, a sl
 }
 
 func openOrCreateFile(path string) (*os.File, error) {
-	file, err := os.Open(path)
+	_, err := os.Open(path)
 
 	if os.IsNotExist(err) {
 		return os.Create(path)
@@ -108,5 +117,5 @@ func openOrCreateFile(path string) (*os.File, error) {
 		return nil, err
 	}
 
-	return file, nil
+	return os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
 }
