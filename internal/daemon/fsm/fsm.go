@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"time"
 
+	"github.com/sboon-gg/svctl/internal/server"
 	"github.com/sboon-gg/svctl/pkg/prbf2proc"
 	"github.com/sboon-gg/svctl/pkg/prbf2update"
 )
@@ -26,18 +26,17 @@ type FSM struct {
 	currentState State
 	desiredState State
 
+	server *server.Server
+
 	proc    *prbf2proc.PRBF2Process
 	updater *prbf2update.PRBF2Update
 
 	err error
 
-	onStateChange func(StateT)
-	render        func() error
-
 	cancel context.CancelFunc
 }
 
-func New(path string, onStateChange func(StateT), render func() error, updateCache *prbf2update.Cache) *FSM {
+func New(sv *server.Server, updateCache *prbf2update.Cache) *FSM {
 	states := map[StateT]State{
 		StateTStopped:    &StateStopped{},
 		StateTRunning:    &StateRunning{},
@@ -60,17 +59,16 @@ func New(path string, onStateChange func(StateT), render func() error, updateCac
 	}
 
 	// Ignore error since we know the path is valid
-	proc, _ := prbf2proc.New(path)
+	proc, _ := prbf2proc.New(sv.Path)
 
 	return &FSM{
 		states:         states,
 		allowedActions: allowedActions,
 		currentState:   states[StateTStopped],
 		desiredState:   states[StateTStopped],
-		onStateChange:  onStateChange,
-		render:         render,
+		server:         sv,
 		proc:           proc,
-		updater:        prbf2update.New(path, updateCache),
+		updater:        prbf2update.New(sv.Path, updateCache),
 	}
 }
 
@@ -164,28 +162,17 @@ func (fsm *FSM) ChangeState(state StateT) {
 
 func (fsm *FSM) Transition() {
 	if fsm.desiredState != fsm.currentState {
-		slog.Debug(fmt.Sprintf("Transitioning from %T to %T", fsm.currentState, fsm.desiredState), slog.Int("pid", fsm.Pid()))
+		fsm.server.Settings.Log.Debug(fmt.Sprintf("Transitioning from %T to %T", fsm.currentState, fsm.desiredState))
 		if fsm.currentState != nil {
 			fsm.currentState.Exit()
 		}
 		fsm.currentState = fsm.desiredState
 		fsm.currentState.Enter(fsm)
-		fsm.onStateChange(fsm.stateToType(fsm.currentState))
 	}
-}
-
-func (fsm *FSM) stateToType(s State) StateT {
-	for t, state := range fsm.states {
-		if state == s {
-			return t
-		}
-	}
-
-	return StateTStopped
 }
 
 func (fsm *FSM) handleError(err error) {
 	fsm.err = err
-	slog.Error(err.Error(), slog.Int("pid", fsm.Pid()))
+	fsm.server.Settings.Log.Error(err.Error())
 	fsm.ChangeState(StateTStopped)
 }
