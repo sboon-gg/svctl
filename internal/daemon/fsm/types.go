@@ -8,6 +8,7 @@ const (
 	StateTStopped    StateT = iota // Stopped
 	StateTRunning                  // Running
 	StateTRestarting               // Restarting
+	StateTUpdating                 // Updating
 	StateTErrored                  // Errored
 )
 

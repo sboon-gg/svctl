@@ -12,9 +12,7 @@ type daemonServer struct {
 	daemon *daemon.Daemon
 }
 
-var _ svctl.ServersServer = &daemonServer{}
-
-func NewDaemonServer(daemon *daemon.Daemon) *daemonServer {
+func NewDaemonServer(daemon *daemon.Daemon) svctl.ServersServer {
 	return &daemonServer{
 		daemon: daemon,
 	}

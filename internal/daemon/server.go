@@ -8,6 +8,7 @@ import (
 	"github.com/sboon-gg/svctl/internal/daemon/fsm"
 	"github.com/sboon-gg/svctl/internal/server"
 	"github.com/sboon-gg/svctl/internal/settings"
+	"github.com/sboon-gg/svctl/pkg/prbf2update"
 )
 
 type RunningServer struct {
@@ -17,7 +18,7 @@ type RunningServer struct {
 	log *slog.Logger
 }
 
-func OpenServer(svPath string) (*RunningServer, error) {
+func OpenServer(svPath string, updaterCache *prbf2update.Cache) (*RunningServer, error) {
 	settingsPath := filepath.Join(svPath, settings.SvctlDir)
 	s, err := server.Open(svPath, settingsPath)
 	if err != nil {
@@ -29,7 +30,7 @@ func OpenServer(svPath string) (*RunningServer, error) {
 		log:    initLog(svPath),
 	}
 
-	rs.fsm = fsm.New(s.Path, rs.setProcess, rs.fullRender)
+	rs.fsm = fsm.New(s.Path, rs.setProcess, rs.fullRender, updaterCache)
 
 	cache, err := s.Settings.Cache()
 	if err != nil {

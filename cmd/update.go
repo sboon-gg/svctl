@@ -1,42 +1,45 @@
 package cmd
 
 import (
+	"path/filepath"
+
+	"github.com/sboon-gg/svctl/pkg/prbf2update"
 	"github.com/spf13/cobra"
 )
 
 type updateOpts struct {
-	*serverOpts
-	dryRun bool
-	watch  bool
-	values []string
-}
-
-func newUpdateOpts() *updateOpts {
-	return &updateOpts{
-		serverOpts: newServerOpts(),
-	}
-}
-
-func init() {
-	rootCmd.AddCommand(updateCmd())
+	path string
 }
 
 func updateCmd() *cobra.Command {
-	opts := newUpdateOpts()
+	opts := &updateOpts{}
 
 	cmd := &cobra.Command{
-		Use:   "update",
-		Short: "Update server",
+		Use: "update",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			opts.path = args[0]
 			return opts.Run(cmd)
 		},
 	}
 
-	opts.serverOpts.AddFlags(cmd)
-
 	return cmd
 }
 
-func (opts *updateOpts) Run(cmd *cobra.Command) error {
+func (o *updateOpts) Run(cmd *cobra.Command) error {
+	cache := prbf2update.NewCache(filepath.Join(o.path, ".update-cache"))
+
+	u := prbf2update.New(o.path, cache)
+
+	result, err := u.Update()
+	if err != nil {
+		return err
+	}
+
+	cmd.Println("Updated from", result.OldVersion, "to", result.NewVersion)
+
 	return nil
+}
+
+func init() {
+	rootCmd.AddCommand(updateCmd())
 }

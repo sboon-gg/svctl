@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/sboon-gg/svctl/pkg/prbf2update"
 )
 
 const (
@@ -12,8 +14,9 @@ const (
 )
 
 type Daemon struct {
-	cacheDir string
-	Servers  map[string]*RunningServer
+	cacheDir     string
+	Servers      map[string]*RunningServer
+	updaterCache *prbf2update.Cache
 }
 
 func New() (*Daemon, error) {
@@ -29,9 +32,17 @@ func New() (*Daemon, error) {
 		return nil, err
 	}
 
+	updaterCacheDir := filepath.Join(svctlCacheDir, "updater")
+
+	err = os.MkdirAll(updaterCacheDir, 0755)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Daemon{
-		Servers:  make(map[string]*RunningServer),
-		cacheDir: svctlCacheDir,
+		Servers:      make(map[string]*RunningServer),
+		cacheDir:     svctlCacheDir,
+		updaterCache: prbf2update.NewCache(updaterCacheDir),
 	}, nil
 }
 
@@ -47,7 +58,7 @@ func Recover() (*Daemon, error) {
 	}
 
 	for _, svPath := range state.Servers {
-		s, err := OpenServer(svPath)
+		s, err := OpenServer(svPath, d.updaterCache)
 		if err != nil {
 			return nil, err
 		}
@@ -63,7 +74,7 @@ func (s *Daemon) Register(path string) error {
 		return fmt.Errorf("server %q already exists", path)
 	}
 
-	sv, err := OpenServer(path)
+	sv, err := OpenServer(path, s.updaterCache)
 	if err != nil {
 		return err
 	}

@@ -11,12 +11,13 @@ func _() {
 	_ = x[StateTStopped-0]
 	_ = x[StateTRunning-1]
 	_ = x[StateTRestarting-2]
-	_ = x[StateTErrored-3]
+	_ = x[StateTUpdating-3]
+	_ = x[StateTErrored-4]
 }
 
-const _StateT_name = "StoppedRunningRestartingErrored"
+const _StateT_name = "StoppedRunningRestartingUpdatingErrored"
 
-var _StateT_index = [...]uint8{0, 7, 14, 24, 31}
+var _StateT_index = [...]uint8{0, 7, 14, 24, 32, 39}
 
 func (i StateT) String() string {
 	if i < 0 || i >= StateT(len(_StateT_index)-1) {

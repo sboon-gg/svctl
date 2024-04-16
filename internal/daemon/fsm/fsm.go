@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sboon-gg/svctl/pkg/prbf2proc"
+	"github.com/sboon-gg/svctl/pkg/prbf2update"
 )
 
 var ErrActionNotAllowed = errors.New("action not allowed")
@@ -25,7 +26,8 @@ type FSM struct {
 	currentState State
 	desiredState State
 
-	proc *prbf2proc.PRBF2Process
+	proc    *prbf2proc.PRBF2Process
+	updater *prbf2update.PRBF2Update
 
 	err error
 
@@ -35,7 +37,7 @@ type FSM struct {
 	cancel context.CancelFunc
 }
 
-func New(path string, onStateChange func(StateT), render func() error) *FSM {
+func New(path string, onStateChange func(StateT), render func() error, updateCache *prbf2update.Cache) *FSM {
 	states := map[StateT]State{
 		StateTStopped:    &StateStopped{},
 		StateTRunning:    &StateRunning{},
@@ -57,6 +59,7 @@ func New(path string, onStateChange func(StateT), render func() error) *FSM {
 		},
 	}
 
+	// Ignore error since we know the path is valid
 	proc, _ := prbf2proc.New(path)
 
 	return &FSM{
@@ -67,6 +70,7 @@ func New(path string, onStateChange func(StateT), render func() error) *FSM {
 		onStateChange:  onStateChange,
 		render:         render,
 		proc:           proc,
+		updater:        prbf2update.New(path, updateCache),
 	}
 }
 

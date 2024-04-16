@@ -89,8 +89,23 @@ func (s *StateRestarting) Enter(fsm *FSM) {
 
 	_ = fsm.proc.Stop()
 
+	if ok, err := fsm.updater.IsNewVersionAvailable(); err == nil && ok {
+		fsm.ChangeState(StateTUpdating)
+		return
+	}
+
 	fsm.ChangeState(StateTRunning)
 }
 
 type StateUpdating struct {
+	stateEmpty
+}
+
+func (s *StateUpdating) Enter(fsm *FSM) {
+	_, err := fsm.updater.Update()
+	if err != nil {
+		fsm.handleError(err)
+	}
+
+	fsm.ChangeState(StateTRestarting)
 }
