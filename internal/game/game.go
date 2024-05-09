@@ -15,10 +15,11 @@ type Game interface {
 }
 
 type Configs interface {
-	// Writes configuration file, storing original file.
-	// Stores origing only first time, then it will be ignored.
-	// Registers file if not already registered.
+	// Writes configuration file.
 	WriteConfig(path string, data []byte) error
+
+	// Read configuration file.
+	ReadConfig(path string) ([]byte, error)
 }
 
 type Process interface {
