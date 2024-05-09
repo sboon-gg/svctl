@@ -38,6 +38,7 @@ const (
 	ArtifactChatlog
 	ArtifactPRDemo
 	ArtifactBF2Demo
+	ArtifactJSONSummary
 )
 
 type Artifact interface {
@@ -52,7 +53,19 @@ type Artifact interface {
 }
 
 type Artifacts interface {
+	// Returns all chatlogs.
+	// Gets chatlogs directory and file pattern from configuration.
 	Chatlogs() []Artifact
+
+	// Returns all PR demos.
+	// Gets PR demos directory and file pattern from configuration.
 	PRDemos() []Artifact
+
+	// Returns all BF2 demos.
+	// Gets BF2 demos directory and file pattern from configuration.
 	BF2Demos() []Artifact
+
+	// Returns all JSON summaries.
+	// Gets JSON summaries directory and file pattern from configuration.
+	JSONSummaries() []Artifact
 }
