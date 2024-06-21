@@ -7,17 +7,16 @@ import (
 	"github.com/sboon-gg/svctl/internal/daemon/fsm"
 	"github.com/sboon-gg/svctl/internal/server"
 	"github.com/sboon-gg/svctl/internal/settings"
-	"github.com/sboon-gg/svctl/pkg/prbf2update"
 )
 
-func OpenServer(svPath string, updaterCache *prbf2update.Cache) (*fsm.FSM, error) {
+func OpenServer(svPath string) (*fsm.FSM, error) {
 	settingsPath := filepath.Join(svPath, settings.SvctlDir)
 	s, err := server.Open(svPath, settingsPath)
 	if err != nil {
 		return nil, err
 	}
 
-	svFSM := fsm.New(s, updaterCache)
+	svFSM := fsm.New(s)
 
 	cache, err := s.Settings.Cache()
 	if err != nil {

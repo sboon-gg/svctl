@@ -4,22 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/sboon-gg/svctl/internal/game"
+	"github.com/sboon-gg/svctl/internal/server"
 )
 
-type Server interface {
-	game.Game
-	Render() error
-}
-
-type FSM interface {
-	Server() Server
-	ChangeState(State)
-	Event(Event) error
-}
-
-type fsm struct {
-	server Server
+type FSM struct {
+	server *server.Server
 
 	currentState State
 	desiredState State
@@ -27,22 +16,22 @@ type fsm struct {
 	cancel context.CancelFunc
 }
 
-func New(server Server, initialState State) FSM {
-	return &fsm{
+func New(server *server.Server, initialState State) *FSM {
+	return &FSM{
 		currentState: initialState,
 		server:       server,
 	}
 }
 
-func (f *fsm) Server() Server {
+func (f *FSM) Server() *server.Server {
 	return f.server
 }
 
-func (f *fsm) ChangeState(state State) {
+func (f *FSM) ChangeState(state State) {
 	f.desiredState = state
 }
 
-func (f *fsm) Event(event Event) error {
+func (f *FSM) Event(event Event) error {
 	if f.currentState == nil {
 		return nil
 	}
@@ -60,7 +49,7 @@ func (f *fsm) Event(event Event) error {
 	return nil
 }
 
-func (f *fsm) Run() {
+func (f *FSM) Run() {
 	if f.cancel != nil {
 		f.cancel()
 	}
@@ -80,7 +69,7 @@ func (f *fsm) Run() {
 	}
 }
 
-func (f *fsm) Transition() {
+func (f *FSM) Transition() {
 	if f.desiredState != f.currentState {
 		if f.currentState != nil {
 			f.currentState.OnExit()

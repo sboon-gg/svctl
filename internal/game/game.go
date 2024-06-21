@@ -4,69 +4,49 @@ import (
 	"context"
 	"io"
 	"os"
-	"time"
+	"path/filepath"
 )
-
-type Game interface {
-	Configs
-	Process
-	Updater
-	Artifacts
-}
-
-type Configs interface {
-	// Writes configuration file.
-	WriteConfig(path string, data []byte) error
-
-	// Read configuration file.
-	ReadConfig(path string) ([]byte, error)
-}
-
-type Process interface {
-	// Start game server process.
-	Start() (*os.Process, error)
-}
-
-type Updater interface {
-	// Update game server.
-	Update(ctx context.Context, output io.Writer) error
-}
-
-type ArtifactType int
 
 const (
-	ArtifactUnknown ArtifactType = iota
-	ArtifactChatlog
-	ArtifactPRDemo
-	ArtifactBF2Demo
-	ArtifactJSONSummary
+	updaterPath = "mods/pr/bin"
 )
 
-type Artifact interface {
-	// File path
-	Location() string
-
-	// Time infered from file name or content metadata.
-	Start() time.Time
-
-	// Artifact type
-	Type() ArtifactType
+type Server struct {
+	path       string
+	processPID *int
 }
 
-type Artifacts interface {
-	// Returns all chatlogs.
-	// Gets chatlogs directory and file pattern from configuration.
-	Chatlogs() []Artifact
+func Open(path string) (*Server, error) {
+	//TODO: adopt and store PID in directory
+	return &Server{
+		path: path,
+	}, nil
+}
 
-	// Returns all PR demos.
-	// Gets PR demos directory and file pattern from configuration.
-	PRDemos() []Artifact
+func (s *Server) WriteFile(path string, data []byte) error {
+	return os.WriteFile(filepath.Join(s.path, path), data, 0644)
+}
 
-	// Returns all BF2 demos.
-	// Gets BF2 demos directory and file pattern from configuration.
-	BF2Demos() []Artifact
+func (s *Server) ReadFile(path string) ([]byte, error) {
+	return os.ReadFile(filepath.Join(s.path, path))
+}
 
-	// Returns all JSON summaries.
-	// Gets JSON summaries directory and file pattern from configuration.
-	JSONSummaries() []Artifact
+func (s *Server) Update(ctx context.Context, outW, inW, errW io.Writer) error {
+	return s.update(ctx, outW, inW, errW)
+}
+
+func makeFileExecutable(exePath string) error {
+	info, err := os.Stat(exePath)
+	if err != nil {
+		return err
+	}
+
+	if info.Mode().Perm()&0100 == 0 {
+		err = os.Chmod(exePath, info.Mode()|0100)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -11,7 +11,7 @@ func NewStateErrored(err error) *StateErrored {
 	}
 }
 
-func (s *StateErrored) EventHandler(event Event, fsm FSM) (State, error) {
+func (s *StateErrored) EventHandler(event Event, fsm *FSM) (State, error) {
 	switch event {
 	case EventReset:
 		return NewStateStopped(), s.Err

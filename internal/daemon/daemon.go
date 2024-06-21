@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/sboon-gg/svctl/internal/daemon/fsm"
-	"github.com/sboon-gg/svctl/pkg/prbf2update"
 )
 
 const (
@@ -15,9 +14,8 @@ const (
 )
 
 type Daemon struct {
-	cacheDir     string
-	Servers      map[string]*fsm.FSM
-	updaterCache *prbf2update.Cache
+	cacheDir string
+	Servers  map[string]*fsm.FSM
 }
 
 func New() (*Daemon, error) {
@@ -33,17 +31,9 @@ func New() (*Daemon, error) {
 		return nil, err
 	}
 
-	updaterCacheDir := filepath.Join(svctlCacheDir, "updater")
-
-	err = os.MkdirAll(updaterCacheDir, 0755)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Daemon{
-		Servers:      make(map[string]*fsm.FSM),
-		cacheDir:     svctlCacheDir,
-		updaterCache: prbf2update.NewCache(updaterCacheDir),
+		Servers:  make(map[string]*fsm.FSM),
+		cacheDir: svctlCacheDir,
 	}, nil
 }
 
@@ -59,7 +49,7 @@ func Recover() (*Daemon, error) {
 	}
 
 	for _, svPath := range state.Servers {
-		s, err := OpenServer(svPath, d.updaterCache)
+		s, err := OpenServer(svPath)
 		if err != nil {
 			return nil, err
 		}

@@ -8,14 +8,14 @@ func NewStateStopped() *StateStopped {
 	return &StateStopped{}
 }
 
-func (s *StateStopped) EventHandler(event Event, fsm FSM) (State, error) {
+func (s *StateStopped) EventHandler(event Event, fsm *FSM) (State, error) {
 	switch event {
 	case EventStart:
-		proc, err := fsm.Server().Start()
+		err := fsm.Server().Start()
 		if err != nil {
 			return NewStateErrored(err), err
 		}
-		return NewStateRunning(proc, nil), nil
+		return NewStateRunning(nil), nil
 	default:
 		return nil, ErrEventNotAllowed
 	}

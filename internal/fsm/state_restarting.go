@@ -17,7 +17,7 @@ func NewStateRestarting(counter *restartCounter) *StateRestarting {
 	}
 }
 
-func (s *StateRestarting) OnEnter(fsm FSM) {
+func (s *StateRestarting) OnEnter(fsm *FSM) {
 	if s.counter != nil {
 		s.counter.Increment()
 		if s.counter.LimitReached() {
@@ -26,13 +26,13 @@ func (s *StateRestarting) OnEnter(fsm FSM) {
 		}
 	}
 
-	proc, err := fsm.Server().Start()
+	err := fsm.Server().Start()
 	if err != nil {
 		fsm.ChangeState(NewStateErrored(err))
 		return
 	}
 
-	fsm.ChangeState(NewStateRunning(proc, s.counter))
+	fsm.ChangeState(NewStateRunning(s.counter))
 }
 
 type restartCounter struct {
